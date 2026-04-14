@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sharif Pharma - Digital Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background: #f8fafc; font-family: 'Inter', sans-serif; }
+        .app-page { display: none; }
+        .app-page.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .setup-card { background: white; border-radius: 24px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 20px; border: 1px solid #f1f5f9; }
+        input, select, textarea { width: 100%; padding: 14px; border: 2px solid #f1f5f9; border-radius: 14px; margin-bottom: 12px; outline: none; transition: 0.3s; font-size: 14px; background: #f8fafc; }
+        input:focus { border-color: #4f46e5; background: white; }
+        .save-btn { width: 100%; padding: 14px; border-radius: 14px; color: white; font-weight: 800; text-transform: uppercase; font-size: 12px; cursor: pointer; border: none; }
+        .group-chip { padding: 8px 16px; border-radius: 12px; background: #f1f5f9; color: #64748b; font-size: 11px; font-weight: 800; cursor: pointer; border: 1px solid #e2e8f0; }
+        .group-chip.active { background: #4f46e5; color: white; border-color: #4f46e5; }
+        .toggle-btn { width: 100%; padding: 10px; background: #f1f5f9; border-radius: 10px; font-size: 11px; font-weight: 800; color: #64748b; margin-top: 10px; text-transform: uppercase; }
+        .hidden-section { display: none; }
+    </style>
+</head>
+<body class="p-2 sm:p-4">
+
+    <div class="max-w-md mx-auto pb-20">
+        
+        <div id="home-section" class="app-page active">
+            <div class="flex justify-between items-center mb-8 px-2">
+                <div>
+                    <h1 class="text-2xl font-black text-indigo-700 uppercase italic">SHARIF PHARMA</h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Digital Order System</p>
+                </div>
+                <button onclick="showPage('settings-section')" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100"><i class="fa-solid fa-gear text-slate-500"></i></button>
+            </div>
+            <div class="setup-card">
+                <p class="text-[10px] font-black text-slate-400 uppercase text-center mb-4 tracking-widest">Select Group to Order</p>
+                <div id="main-group-list" class="grid grid-cols-2 gap-3"></div>
+            </div>
+            <button onclick="showPage('history-section')" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-sm shadow-xl active:scale-95 transition">📊 অর্ডার রিপোর্ট ও হিস্ট্রি</button>
+        </div>
+
+        <div id="chemist-section" class="app-page">
+            <div class="flex items-center gap-4 mb-6"><button onclick="showPage('home-section')" class="text-indigo-600"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-lg font-black text-slate-800 uppercase italic">Chemist List</h1></div>
+            <div id="chemist-list" class="space-y-3"></div>
+        </div>
+
+        <div id="form-section" class="app-page">
+            <button onclick="showPage('chemist-section')" class="font-bold text-indigo-600 mb-4"><i class="fa-solid fa-arrow-left"></i> ব্যাক</button>
+            <div class="setup-card">
+                <h2 id="selected-chemist-name" class="text-lg font-black text-slate-800 uppercase text-center mb-4 border-b pb-2"></h2>
+                <input type="text" id="product-name" list="med-list-data" placeholder="মেডিসিনের নাম...">
+                <input type="number" id="quantity" placeholder="পরিমাণ (Qty)">
+                <button id="addToCartBtn" class="save-btn bg-indigo-600 shadow-lg">তালিকায় যোগ করুন</button>
+            </div>
+            <div class="setup-card p-0 overflow-hidden"><table class="w-full"><tbody id="cart-items" class="divide-y divide-slate-50"></tbody></table></div>
+            <button id="saveOrderBtn" class="w-full mt-4 bg-emerald-600 text-white py-4 rounded-2xl font-black shadow-lg">অর্ডার সেভ করুন</button>
+        </div>
+
+        <div id="history-section" class="app-page">
+            <div class="flex items-center gap-4 mb-6"><button onclick="showPage('home-section')" class="text-indigo-600"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-lg font-black text-slate-800 uppercase italic">History</h1></div>
+            <div class="setup-card">
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="searchGroupFilter" class="mb-0 text-xs font-bold"></select>
+                    <input type="date" id="searchDateInput" class="mb-0 text-xs">
+                </div>
+                <button id="searchHistoryBtn" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold mt-4 shadow-lg uppercase text-xs">সার্চ রিপোর্ট</button>
+            </div>
+            <div id="history-data" class="space-y-3"></div>
+        </div>
+
+        <div id="detail-section" class="app-page">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="showPage('history-section')" class="font-bold text-indigo-600"><i class="fa-solid fa-arrow-left"></i> ব্যাক</button>
+                <button id="downloadPdfBtn" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase"><i class="fa-solid fa-download mr-1"></i> Download PDF</button>
+            </div>
+            <div id="invoice-print" class="bg-white p-6 rounded-[2rem] border">
+                <div class="text-center border-b pb-4 mb-4"><h2 class="text-xl font-black italic text-indigo-700">SHARIF PHARMA</h2><p id="inv-date" class="text-[10px] font-bold text-slate-400 uppercase mt-1"></p></div>
+                <div class="mb-4"><p class="text-[9px] text-slate-400 uppercase font-black">Customer</p><p id="inv-chemist" class="text-lg font-black uppercase text-slate-800"></p></div>
+                <div id="inv-items-list" class="space-y-2"></div>
+            </div>
+            <div class="mt-4 p-4 bg-white rounded-3xl border border-dashed border-indigo-100">
+                <div class="flex gap-2">
+                    <input type="text" id="edit-p-name" list="med-list-data" placeholder="মেডিসিন" class="mb-0 text-xs">
+                    <input type="number" id="edit-p-qty" placeholder="Qty" class="mb-0 w-24 text-xs">
+                    <button id="addItemToExistingBtn" class="bg-indigo-600 text-white px-4 rounded-xl"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-section" class="app-page">
+            <div class="flex items-center gap-4 mb-6"><button onclick="showPage('home-section')" class="text-slate-500"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-lg font-black text-slate-800 uppercase italic">Admin Setup</h1></div>
+
+            <div class="setup-card">
+                <h3 class="text-[10px] font-black text-indigo-600 uppercase mb-3 tracking-widest">Step 1: Create Group</h3>
+                <div class="flex gap-2"><input type="text" id="gInput" placeholder="Ex: GB-12" class="mb-0"><button id="addGroupBtn" class="bg-slate-900 text-white px-5 rounded-xl font-black text-xs">ADD</button></div>
+                <button onclick="toggleSection('gList')" class="toggle-btn">Show Groups ↓</button>
+                <div id="gList" class="hidden-section mt-4 flex flex-wrap gap-2"></div>
+            </div>
+
+            <div class="setup-card border-l-4 border-emerald-500">
+                <h3 class="text-[10px] font-black text-emerald-600 uppercase mb-3 tracking-widest">Step 2: Add Customers</h3>
+                <select id="gSelect"><option value="">Select Group First</option></select>
+                <textarea id="cInputBulk" rows="3" placeholder="কাস্টমারের নামগুলো লিখুন..."></textarea>
+                <button id="saveCustBtn" class="save-btn bg-emerald-600">Save All Customers</button>
+                <button onclick="toggleSection('cManage')" class="toggle-btn">Show Customers ↓</button>
+                <div id="cManage" class="hidden-section mt-4">
+                    <div id="filter-chips" class="flex flex-wrap gap-2 mb-4"></div>
+                    <div id="cList" class="max-h-[200px] overflow-y-auto space-y-2"></div>
+                </div>
+            </div>
+
+            <div class="setup-card border-l-4 border-amber-500">
+                <h3 class="text-[10px] font-black text-amber-600 uppercase mb-3 tracking-widest">Step 3: Medicine Inventory</h3>
+                <textarea id="mInputBulk" rows="3" placeholder="Napa, Ace, Seclo..."></textarea>
+                <button id="saveMedBtn" class="save-btn bg-amber-600">Save Medicines</button>
+                <button onclick="toggleSection('mManage')" class="toggle-btn">Show Medicine List ↓</button>
+                <div id="mManage" class="hidden-section mt-4"><div id="mList" class="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto"></div></div>
+            </div>
+        </div>
+
+    </div>
+
+    <datalist id="med-list-data"></datalist>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, arrayUnion, arrayRemove, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzwqWUuMyW8piPhkFRhcpnmcpbu_0-lvk",
+            authDomain: "sharif-pharma.firebaseapp.com",
+            projectId: "sharif-pharma",
+            storageBucket: "sharif-pharma.firebasestorage.app",
+            messagingSenderId: "867521349666",
+            appId: "1:867521349666:web:a8d139d5c41690e910227b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const DOC_REF = doc(db, "settings", "app_data");
+
+        let masterGroups = [], allCustomers = [], allMedicines = [], cart = [], currentGroup = '', currentChemist = '', activeFilter = '', currentOrderId = '', currentOrderData = null;
+
+        onSnapshot(DOC_REF, (snap) => {
+            const data = snap.exists() ? snap.data() : { groups: [], customers: [], medicines: [] };
+            masterGroups = data.groups || [];
+            allCustomers = data.customers || [];
+            allMedicines = data.medicines || [];
+            renderAdminUI();
+        });
+
+        function renderAdminUI() {
+            document.getElementById('main-group-list').innerHTML = masterGroups.map(g => `<button onclick="showChemists('${g}')" class="bg-white border p-4 rounded-2xl font-black text-indigo-700 shadow-sm">${g}</button>`).join('');
+            document.getElementById('searchGroupFilter').innerHTML = '<option value="ALL">All Groups</option>' + masterGroups.map(g => `<option value="${g}">${g}</option>`).join('');
+            document.getElementById('gSelect').innerHTML = '<option value="">Select Group First</option>' + masterGroups.map(g => `<option value="${g}">${g}</option>`).join('');
+            document.getElementById('gList').innerHTML = masterGroups.map(g => `<div class="group-chip active flex items-center gap-2">${g} <i class="fa-solid fa-xmark cursor-pointer" onclick="deleteGroup('${g}')"></i></div>`).join('');
+            document.getElementById('mList').innerHTML = allMedicines.map(m => `<div class="bg-amber-50 text-amber-700 border border-amber-100 px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-2">${m} <i class="fa-solid fa-trash-can cursor-pointer" onclick="deleteMed('${m}')"></i></div>`).join('');
+            document.getElementById('med-list-data').innerHTML = allMedicines.map(m => `<option value="${m}">`).join('');
+            
+            const fChips = document.getElementById('filter-chips');
+            fChips.innerHTML = "";
+            masterGroups.forEach(g => {
+                const btn = document.createElement('button');
+                btn.className = `group-chip ${activeFilter === g ? 'active' : ''}`;
+                btn.innerText = g;
+                btn.onclick = () => { activeFilter = g; renderCustomers(); };
+                fChips.appendChild(btn);
+            });
+            renderCustomers();
+        }
+
+        window.renderCustomers = () => {
+            const cList = document.getElementById('cList');
+            if(!activeFilter) { cList.innerHTML = `<p class="text-center text-slate-300 text-[10px] py-4">Select Group Filter</p>`; return; }
+            const filtered = allCustomers.filter(c => c.group === activeFilter);
+            cList.innerHTML = filtered.map(c => `<div class="p-3 bg-white border border-slate-100 rounded-xl flex justify-between items-center mb-2"><span class="text-xs font-bold uppercase">${c.name}</span><i class="fa-solid fa-trash-can text-red-300 cursor-pointer" onclick="deleteCustomer('${c.name}', '${activeFilter}')"></i></div>`).join('');
+        };
+
+        window.showChemists = (g) => {
+            currentGroup = g; showPage('chemist-section');
+            const filtered = allCustomers.filter(c => c.group === g);
+            document.getElementById('chemist-list').innerHTML = filtered.map(c => `<button onclick="openForm('${c.name}')" class="w-full text-left p-5 bg-white border border-slate-100 rounded-2xl font-black text-slate-700 shadow-sm active:bg-indigo-50">${c.name}</button>`).join('');
+        };
+
+        window.openForm = (name) => { currentChemist = name; cart = []; renderCart(); document.getElementById('selected-chemist-name').innerText = name; showPage('form-section'); };
+        document.getElementById('addToCartBtn').onclick = () => {
+            const p = document.getElementById('product-name').value, q = document.getElementById('quantity').value;
+            if(!p || !q) return;
+            cart.push({product: p, qty: q});
+            document.getElementById('product-name').value = ''; document.getElementById('quantity').value = ''; renderCart();
+        };
+        function renderCart() { document.getElementById('cart-items').innerHTML = cart.map((item, i) => `<tr class="flex justify-between items-center p-4"><td class="font-bold text-sm uppercase">${item.product}</td><td class="font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">x${item.qty}</td><td><button onclick="window.removeCartItem(${i})" class="text-red-400">✕</button></td></tr>`).join(''); }
+        window.removeCartItem = (i) => { cart.splice(i,1); renderCart(); };
+
+        document.getElementById('saveOrderBtn').onclick = async () => {
+            if(!cart.length) return alert("তালিকা খালি!");
+            const date = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Dhaka'}).format(new Date());
+            await addDoc(collection(db, "orders"), { group: currentGroup, chemist: currentChemist, items: cart, date: date });
+            alert("অর্ডার সেভ হয়েছে!"); showPage('home-section');
+        };
+
+        document.getElementById('searchHistoryBtn').onclick = async () => {
+            const date = document.getElementById('searchDateInput').value, group = document.getElementById('searchGroupFilter').value;
+            if(!date) return alert("তারিখ দিন");
+            const snap = await getDocs(query(collection(db, "orders"), where("date", "==", date)));
+            const container = document.getElementById('history-data');
+            container.innerHTML = '';
+            snap.forEach(d => {
+                const data = d.data();
+                if(group === "ALL" || data.group === group) {
+                    container.innerHTML += `<div onclick="window.openDetail('${d.id}')" class="setup-card flex justify-between items-center cursor-pointer p-5 border-l-4 border-indigo-500"><div><p class="font-black text-slate-800 uppercase">${data.chemist}</p><p class="text-[9px] font-bold text-slate-400 uppercase">${data.group} • ${data.items.length} Items</p></div><i class="fa-solid fa-chevron-right text-slate-200"></i></div>`;
+                }
+            });
+        };
+
+        window.openDetail = (id) => {
+            currentOrderId = id;
+            onSnapshot(doc(db, "orders", id), (snap) => {
+                if(!snap.exists()) return;
+                currentOrderData = snap.data();
+                document.getElementById('inv-date').innerText = currentOrderData.date;
+                document.getElementById('inv-chemist').innerText = currentOrderData.chemist;
+                document.getElementById('inv-items-list').innerHTML = currentOrderData.items.map((it, i) => `<div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl"><span class="text-sm font-bold uppercase">${it.product}</span><div class="flex items-center gap-4"><span class="font-black text-indigo-600">x${it.qty}</span><button onclick="window.deleteItemFromOrder(${i})" class="text-red-300"><i class="fa-solid fa-trash"></i></button></div></div>`).join('');
+                showPage('detail-section');
+            });
+        };
+
+        document.getElementById('addItemToExistingBtn').onclick = async () => {
+            const p = document.getElementById('edit-p-name').value, q = document.getElementById('edit-p-qty').value;
+            if(p && q) await updateDoc(doc(db, "orders", currentOrderId), { items: [...currentOrderData.items, { product: p, qty: q }] });
+            document.getElementById('edit-p-name').value = ''; document.getElementById('edit-p-qty').value = '';
+        };
+
+        window.deleteItemFromOrder = async (i) => { if(confirm("ডিলিট করবেন?")) await updateDoc(doc(db, "orders", currentOrderId), { items: currentOrderData.items.filter((_, idx) => idx !== i) }); };
+
+        document.getElementById('downloadPdfBtn').onclick = () => {
+            const element = document.getElementById('invoice-print');
+            html2pdf().set({ margin: 10, filename: `${currentOrderData.chemist}.pdf`, html2canvas: { scale: 3, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save();
+        };
+
+        document.getElementById('addGroupBtn').onclick = async () => {
+            const v = document.getElementById('gInput').value.trim().toUpperCase();
+            if(v) await setDoc(DOC_REF, { groups: arrayUnion(v) }, { merge: true });
+            document.getElementById('gInput').value = "";
+        };
+
+        document.getElementById('saveCustBtn').onclick = async () => {
+            const g = document.getElementById('gSelect').value, raw = document.getElementById('cInputBulk').value.trim();
+            if(!g || !raw) return;
+            const newCusts = raw.split(/[,\n]/).map(n => ({ group: g, name: n.trim() })).filter(c => c.name !== "");
+            await setDoc(DOC_REF, { customers: arrayUnion(...newCusts) }, { merge: true });
+            document.getElementById('cInputBulk').value = ""; alert("কাস্টমার সেভ হয়েছে");
+        };
+
+        document.getElementById('saveMedBtn').onclick = async () => {
+            const raw = document.getElementById('mInputBulk').value.trim();
+            if(!raw) return;
+            const meds = raw.split(/[,\n]/).map(m => m.trim()).filter(m => m !== "");
+            await setDoc(DOC_REF, { medicines: arrayUnion(...meds) }, { merge: true });
+            document.getElementById('mInputBulk').value = ""; alert("মেডিসিন সেভ হয়েছে");
+        };
+
+        window.deleteGroup = async (g) => { if(confirm('Delete Group?')) await updateDoc(DOC_REF, { groups: arrayRemove(g) }); };
+        window.deleteMed = async (m) => { if(confirm('Delete Medicine?')) await updateDoc(DOC_REF, { medicines: arrayRemove(m) }); };
+        window.deleteCustomer = async (n, g) => { if(confirm('Delete Customer?')) await updateDoc(DOC_REF, { customers: arrayRemove({group: g, name: n}) }); };
+        window.showPage = (id) => { document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); };
+        window.toggleSection = (id) => { const el = document.getElementById(id); el.style.display = (el.style.display === "block") ? "none" : "block"; };
+    </script>
+</body>
+          </html>

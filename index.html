@@ -4,9 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Due List - Digital Admin</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
         body { background: #f0f2f5; font-family: 'Inter', sans-serif; color: #1e293b; }
@@ -14,24 +22,21 @@
         .app-page.active { display: block; animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Premium UI Elements */
         .glass-header { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border-radius: 0 0 32px 32px; padding: 40px 20px; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.2); }
         .setup-card { background: white; border-radius: 28px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.7); }
         
-        /* Input & Buttons */
-        input, select, textarea { width: 100%; padding: 15px; border: 2px solid #eef2f6; border-radius: 16px; margin-bottom: 12px; outline: none; transition: 0.3s; font-size: 14px; background: #f8fafc; }
+        input, select, textarea { width: 100%; padding: 18px; border: 2px solid #eef2f6; border-radius: 18px; margin-bottom: 15px; outline: none; transition: 0.3s; font-size: 16px; background: #f8fafc; font-weight: 600; }
         input:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
         
         .main-action-btn { background: white; border: 1px solid #eef2f6; padding: 20px; border-radius: 24px; text-align: center; transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
         .main-action-btn:active { transform: scale(0.96); background: #f8fafc; }
         
-        .save-btn { width: 100%; padding: 16px; border-radius: 16px; color: white; font-weight: 800; text-transform: uppercase; font-size: 13px; cursor: pointer; border: none; transition: 0.3s; }
+        .save-btn { width: 100%; padding: 18px; border-radius: 18px; color: white; font-weight: 800; text-transform: uppercase; font-size: 14px; cursor: pointer; border: none; transition: 0.3s; }
         .save-btn:active { transform: scale(0.98); opacity: 0.9; }
 
-        /* Order Table */
         .order-table { width: 100%; border-collapse: collapse; margin-top: 15px; border-radius: 12px; overflow: hidden; }
         .order-table th { background: #f8fafc; color: #64748b; font-size: 11px; text-transform: uppercase; padding: 12px; text-align: left; border-bottom: 2px solid #f1f5f9; }
-        .order-table td { padding: 14px 12px; font-size: 13px; border-bottom: 1px solid #f1f5f9; font-weight: 600; }
+        .order-table td { padding: 14px 12px; font-size: 13px; border-bottom: 1px solid #f1f5f9; font-weight: 700; }
     </style>
 </head>
 <body class="p-0 sm:p-4">
@@ -52,15 +57,11 @@
                     <h2 class="text-sm font-black text-slate-500 uppercase tracking-wider">Select Group</h2>
                     <span class="h-[1px] bg-slate-200 flex-1 ml-4"></span>
                 </div>
-
-                <div id="main-group-list" class="grid grid-cols-2 gap-4 mb-8">
-                    </div>
-
+                <div id="main-group-list" class="grid grid-cols-2 gap-4 mb-8"></div>
                 <div class="flex items-center justify-between mb-4 px-2">
                     <h2 class="text-sm font-black text-slate-500 uppercase tracking-wider">Reports</h2>
                     <span class="h-[1px] bg-slate-200 flex-1 ml-4"></span>
                 </div>
-
                 <button onclick="showPage('history-section')" class="w-full bg-slate-900 text-white p-6 rounded-[2rem] flex items-center justify-between shadow-2xl active:scale-95 transition-all">
                     <div class="flex items-center gap-4">
                         <div class="bg-white/10 p-3 rounded-2xl"><i class="fa-solid fa-chart-pie text-xl"></i></div>
@@ -92,14 +93,14 @@
                 </div>
                 <input type="text" id="product-name" list="med-list-data" placeholder="মেডিসিনের নাম...">
                 <input type="number" id="quantity" placeholder="পরিমাণ (Qty)">
-                <button id="addToCartBtn" class="save-btn bg-indigo-600 shadow-indigo-200 shadow-lg">তালিকায় যোগ করুন</button>
+                <button id="addToCartBtn" class="save-btn bg-indigo-600 shadow-lg">তালিকায় যোগ করুন</button>
             </div>
             <div class="setup-card p-0 overflow-hidden shadow-sm">
                 <table class="w-full">
                     <tbody id="cart-items" class="divide-y divide-slate-50"></tbody>
                 </table>
             </div>
-            <button id="saveOrderBtn" class="w-full mt-4 bg-emerald-600 text-white py-5 rounded-3xl font-black shadow-xl shadow-emerald-100">অর্ডার সেভ করুন</button>
+            <button id="saveOrderBtn" class="w-full mt-4 bg-emerald-600 text-white py-6 rounded-3xl font-black shadow-xl">অর্ডার সেভ করুন</button>
         </div>
 
         <div id="history-section" class="app-page px-5 pt-6">
@@ -108,11 +109,9 @@
                 <h1 class="text-xl font-black text-slate-800 uppercase">History</h1>
             </div>
             <div class="setup-card">
-                <div class="grid grid-cols-2 gap-2">
-                    <select id="searchGroupFilter" class="mb-0 text-xs font-bold"></select>
-                    <input type="date" id="searchDateInput" class="mb-0 text-xs">
-                </div>
-                <button id="searchHistoryBtn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold mt-4 shadow-lg uppercase text-xs">সার্চ রিপোর্ট</button>
+                <select id="searchGroupFilter"></select>
+                <input type="date" id="searchDateInput">
+                <button id="searchHistoryBtn" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold mt-2 shadow-lg uppercase text-sm">সার্চ রিপোর্ট</button>
             </div>
             <div id="history-data" class="space-y-3"></div>
         </div>
@@ -120,15 +119,14 @@
         <div id="detail-section" class="app-page px-5 pt-6">
             <div class="flex justify-between items-center mb-4">
                 <button onclick="showPage('history-section')" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-600"><i class="fa-solid fa-arrow-left"></i></button>
-                <button id="downloadPdfBtn" class="bg-emerald-600 text-white px-5 py-3 rounded-2xl text-xs font-black uppercase shadow-lg"><i class="fa-solid fa-file-pdf mr-2"></i> PDF</button>
+                <button id="downloadPdfBtn" class="bg-emerald-600 text-white px-5 py-3 rounded-2xl text-xs font-black uppercase shadow-lg">PDF</button>
             </div>
             <div id="invoice-print" class="bg-white p-8 rounded-[2.5rem] border shadow-xl">
                 <div class="text-center border-b-2 border-slate-50 pb-6 mb-6">
-                    <h2 class="text-2xl font-black italic text-indigo-700 tracking-tighter">DUE LIST</h2>
+                    <h2 class="text-2xl font-black italic text-indigo-700 uppercase">DUE LIST</h2>
                     <p id="inv-date" class="text-[10px] font-bold text-slate-400 uppercase mt-2"></p>
                 </div>
                 <div class="mb-6">
-                    <p class="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1">Customer Details</p>
                     <p id="inv-chemist" class="text-xl font-black uppercase text-slate-800 italic"></p>
                 </div>
                 <table class="order-table">
@@ -142,13 +140,11 @@
                     <tbody id="inv-items-table-body"></tbody>
                 </table>
             </div>
-            
             <div class="mt-6 p-5 bg-white rounded-[2rem] border border-dashed border-indigo-200">
-                <p class="text-[10px] font-black text-indigo-500 uppercase mb-3 ml-1">Edit Order Items</p>
+                <input type="text" id="edit-p-name" list="med-list-data" placeholder="মেডিসিন">
                 <div class="flex gap-2">
-                    <input type="text" id="edit-p-name" list="med-list-data" placeholder="Medicine" class="mb-0 text-xs">
-                    <input type="number" id="edit-p-qty" placeholder="Qty" class="mb-0 w-24 text-xs">
-                    <button id="addItemToExistingBtn" class="bg-indigo-600 text-white px-5 rounded-2xl"><i class="fa-solid fa-plus"></i></button>
+                    <input type="number" id="edit-p-qty" placeholder="Qty" class="mb-0">
+                    <button id="addItemToExistingBtn" class="bg-indigo-600 text-white px-8 rounded-2xl"><i class="fa-solid fa-plus"></i></button>
                 </div>
             </div>
         </div>
@@ -158,35 +154,21 @@
                 <button onclick="showPage('home-section')" class="bg-white p-3 rounded-2xl shadow-sm border text-slate-500"><i class="fa-solid fa-chevron-left"></i></button>
                 <h1 class="text-xl font-black text-slate-800 uppercase">Settings</h1>
             </div>
-
             <div class="setup-card">
-                <h3 class="text-[10px] font-black text-indigo-600 uppercase mb-3 tracking-widest">Step 1: Groups</h3>
-                <div class="flex gap-2"><input type="text" id="gInput" placeholder="Ex: GB-12" class="mb-0"><button id="addGroupBtn" class="bg-slate-900 text-white px-5 rounded-xl font-black text-xs">ADD</button></div>
-                <button onclick="toggleSection('gList')" class="toggle-btn">Show Groups ↓</button>
-                <div id="gList" class="hidden-section mt-4 flex flex-wrap gap-2"></div>
+                <div class="flex gap-2"><input type="text" id="gInput" placeholder="Group Name" class="mb-0"><button id="addGroupBtn" class="bg-slate-900 text-white px-5 rounded-xl font-black text-xs">ADD</button></div>
+                <div id="gList" class="mt-4 flex flex-wrap gap-2"></div>
             </div>
-
             <div class="setup-card border-l-8 border-emerald-500">
-                <h3 class="text-[10px] font-black text-emerald-600 uppercase mb-3 tracking-widest">Step 2: Customers</h3>
                 <select id="gSelect"><option value="">Select Group</option></select>
-                <textarea id="cInputBulk" rows="3" placeholder="কাস্টমারের নামগুলো লিখুন..."></textarea>
+                <textarea id="cInputBulk" rows="3" placeholder="কাস্টমারের নামগুলো..."></textarea>
                 <button id="saveCustBtn" class="save-btn bg-emerald-600">Save Customers</button>
-                <button onclick="toggleSection('cManage')" class="toggle-btn">Show Customers ↓</button>
-                <div id="cManage" class="hidden-section mt-4">
-                    <div id="filter-chips" class="flex flex-wrap gap-2 mb-4"></div>
-                    <div id="cList" class="max-h-[200px] overflow-y-auto space-y-2"></div>
-                </div>
+                <div id="cList" class="mt-4 space-y-2 max-h-40 overflow-y-auto"></div>
             </div>
-
             <div class="setup-card border-l-8 border-amber-500">
-                <h3 class="text-[10px] font-black text-amber-600 uppercase mb-3 tracking-widest">Step 3: Medicine</h3>
-                <textarea id="mInputBulk" rows="3" placeholder="Medicine list..."></textarea>
+                <textarea id="mInputBulk" rows="3" placeholder="মেডিসিন লিস্ট..."></textarea>
                 <button id="saveMedBtn" class="save-btn bg-amber-600">Save Medicine</button>
-                <button onclick="toggleSection('mManage')" class="toggle-btn">Show List ↓</button>
-                <div id="mManage" class="hidden-section mt-4"><div id="mList" class="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto"></div></div>
             </div>
         </div>
-
     </div>
 
     <datalist id="med-list-data"></datalist>
@@ -219,63 +201,47 @@
         });
 
         function renderAdminUI() {
-            // হোম পেজের গ্রুপ বাটন ডিজাইন
             document.getElementById('main-group-list').innerHTML = masterGroups.map(g => `
                 <button onclick="showChemists('${g}')" class="main-action-btn">
                     <div class="text-indigo-600 mb-2"><i class="fa-solid fa-folder-open text-2xl"></i></div>
                     <div class="font-black text-slate-800 text-sm uppercase">${g}</div>
-                    <div class="text-[9px] text-slate-400 font-bold uppercase mt-1">Order Now</div>
                 </button>
             `).join('');
-            
             document.getElementById('searchGroupFilter').innerHTML = '<option value="ALL">All Groups</option>' + masterGroups.map(g => `<option value="${g}">${g}</option>`).join('');
-            document.getElementById('gSelect').innerHTML = '<option value="">Select Group First</option>' + masterGroups.map(g => `<option value="${g}">${g}</option>`).join('');
-            document.getElementById('gList').innerHTML = masterGroups.map(g => `<div class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2">${g} <i class="fa-solid fa-xmark cursor-pointer" onclick="deleteGroup('${g}')"></i></div>`).join('');
-            document.getElementById('mList').innerHTML = allMedicines.map(m => `<div class="bg-amber-50 text-amber-700 border border-amber-100 px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-2">${m} <i class="fa-solid fa-trash-can cursor-pointer" onclick="deleteMed('${m}')"></i></div>`).join('');
+            document.getElementById('gSelect').innerHTML = '<option value="">Select Group</option>' + masterGroups.map(g => `<option value="${g}">${g}</option>`).join('');
+            document.getElementById('gList').innerHTML = masterGroups.map(g => `<div class="bg-indigo-50 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-2">${g} <i class="fa-solid fa-xmark cursor-pointer" onclick="deleteGroup('${g}')"></i></div>`).join('');
             document.getElementById('med-list-data').innerHTML = allMedicines.map(m => `<option value="${m}">`).join('');
-            
-            const fChips = document.getElementById('filter-chips');
-            fChips.innerHTML = "";
-            masterGroups.forEach(g => {
-                const btn = document.createElement('button');
-                btn.className = `group-chip ${activeFilter === g ? 'active' : ''}`;
-                btn.innerText = g;
-                btn.onclick = () => { activeFilter = g; renderCustomers(); };
-                fChips.appendChild(btn);
-            });
             renderCustomers();
         }
 
         window.renderCustomers = () => {
             const cList = document.getElementById('cList');
-            if(!activeFilter) { cList.innerHTML = `<p class="text-center text-slate-300 text-[10px] py-4">Select Group Filter</p>`; return; }
-            const filtered = allCustomers.filter(c => c.group === activeFilter);
-            cList.innerHTML = filtered.map(c => `<div class="p-3 bg-white border border-slate-100 rounded-xl flex justify-between items-center mb-2"><span class="text-xs font-bold uppercase">${c.name}</span><i class="fa-solid fa-trash-can text-red-300 cursor-pointer" onclick="deleteCustomer('${c.name}', '${activeFilter}')"></i></div>`).join('');
+            const filtered = allCustomers;
+            cList.innerHTML = filtered.map(c => `<div class="p-2 bg-slate-50 rounded flex justify-between text-xs font-bold uppercase"><span>${c.name} (${c.group})</span><i class="fa-solid fa-trash text-red-300" onclick="deleteCustomer('${c.name}', '${c.group}')"></i></div>`).join('');
         };
 
         window.showChemists = (g) => {
             currentGroup = g; 
-            document.getElementById('customerSearchInput').value = "";
             showPage('chemist-section');
             const groupCustomers = allCustomers.filter(c => c.group === g);
-            const renderList = (filtered) => {
-                document.getElementById('chemist-list').innerHTML = filtered.map(c => `<button onclick="openForm('${c.name}')" class="w-full text-left p-5 bg-white border border-slate-100 rounded-3xl font-black text-slate-700 shadow-sm active:bg-indigo-50 uppercase">${c.name}</button>`).join('');
+            const renderList = (f) => {
+                document.getElementById('chemist-list').innerHTML = f.map(c => `<button onclick="openForm('${c.name}')" class="w-full text-left p-5 bg-white border rounded-3xl font-black text-slate-700 uppercase">${c.name}</button>`).join('');
             };
             renderList(groupCustomers);
             document.getElementById('customerSearchInput').oninput = (e) => {
                 const term = e.target.value.toLowerCase();
-                const filtered = groupCustomers.filter(c => c.name.toLowerCase().includes(term));
-                renderList(filtered);
+                renderList(groupCustomers.filter(c => c.name.toLowerCase().includes(term)));
             };
         };
 
         window.openForm = (name) => { currentChemist = name; cart = []; renderCart(); document.getElementById('selected-chemist-name').innerText = name; showPage('form-section'); };
         
         document.getElementById('addToCartBtn').onclick = () => {
-            const p = document.getElementById('product-name').value, q = document.getElementById('quantity').value;
-            if(!p || !q) return;
-            cart.push({product: p, qty: q});
-            document.getElementById('product-name').value = ''; document.getElementById('quantity').value = ''; renderCart();
+            const prodInput = document.getElementById('product-name'), qtyInput = document.getElementById('quantity');
+            if(!prodInput.value || !qtyInput.value) return;
+            cart.push({product: prodInput.value, qty: qtyInput.value});
+            prodInput.value = ''; qtyInput.value = ''; prodInput.focus();
+            renderCart();
         };
 
         function renderCart() { document.getElementById('cart-items').innerHTML = cart.map((item, i) => `<tr class="flex justify-between items-center p-4"><td class="font-bold text-sm uppercase">${item.product}</td><td class="font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">x${item.qty}</td><td><button onclick="window.removeCartItem(${i})" class="text-red-400">✕</button></td></tr>`).join(''); }
@@ -286,19 +252,18 @@
             if(!cart.length) return alert("তালিকা খালি!");
             const date = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Dhaka'}).format(new Date());
             await addDoc(collection(db, "orders"), { group: currentGroup, chemist: currentChemist, items: cart, date: date });
-            alert("অর্ডার সেভ হয়েছে!"); showPage('home-section');
+            alert("সেভ হয়েছে!"); showPage('home-section');
         };
 
         document.getElementById('searchHistoryBtn').onclick = async () => {
             const date = document.getElementById('searchDateInput').value, group = document.getElementById('searchGroupFilter').value;
             if(!date) return alert("তারিখ দিন");
             const snap = await getDocs(query(collection(db, "orders"), where("date", "==", date)));
-            const container = document.getElementById('history-data');
-            container.innerHTML = '';
+            const container = document.getElementById('history-data'); container.innerHTML = '';
             snap.forEach(d => {
                 const data = d.data();
                 if(group === "ALL" || data.group === group) {
-                    container.innerHTML += `<div onclick="window.openDetail('${d.id}')" class="setup-card flex justify-between items-center cursor-pointer p-6 border-l-8 border-indigo-500"><div><p class="font-black text-slate-800 uppercase text-lg italic">${data.chemist}</p><p class="text-[10px] font-bold text-slate-400 uppercase mt-1">${data.group} • ${data.items.length} Items</p></div><i class="fa-solid fa-chevron-right text-slate-300"></i></div>`;
+                    container.innerHTML += `<div onclick="window.openDetail('${d.id}')" class="setup-card flex justify-between items-center cursor-pointer p-6 border-l-8 border-indigo-500"><div><p class="font-black text-slate-800 uppercase text-lg">${data.chemist}</p><p class="text-[10px] text-slate-400 font-bold uppercase">${data.group} • ${data.items.length} Items</p></div><i class="fa-solid fa-chevron-right text-slate-300"></i></div>`;
                 }
             });
         };
@@ -310,34 +275,24 @@
                 currentOrderData = snap.data();
                 document.getElementById('inv-date').innerText = currentOrderData.date;
                 document.getElementById('inv-chemist').innerText = currentOrderData.chemist;
-                document.getElementById('inv-items-table-body').innerHTML = currentOrderData.items.map((it, i) => `
-                    <tr>
-                        <td class="uppercase">${it.product}</td>
-                        <td class="text-center font-black text-indigo-600">x${it.qty}</td>
-                        <td class="no-pdf text-center">
-                            <button onclick="window.deleteItemFromOrder(${i})" class="text-red-300 active:text-red-600"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `).join('');
+                document.getElementById('inv-items-table-body').innerHTML = currentOrderData.items.map((it, i) => `<tr><td class="uppercase">${it.product}</td><td class="text-center font-black text-indigo-600">x${it.qty}</td><td class="no-pdf text-center"><button onclick="window.deleteItemFromOrder(${i})" class="text-red-300"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('');
                 showPage('detail-section');
             });
         };
 
         document.getElementById('addItemToExistingBtn').onclick = async () => {
-            const p = document.getElementById('edit-p-name').value, q = document.getElementById('edit-p-qty').value;
-            if(p && q) await updateDoc(doc(db, "orders", currentOrderId), { items: [...currentOrderData.items, { product: p, qty: q }] });
-            document.getElementById('edit-p-name').value = ''; document.getElementById('edit-p-qty').value = '';
+            const p = document.getElementById('edit-p-name'), q = document.getElementById('edit-p-qty');
+            if(p.value && q.value) await updateDoc(doc(db, "orders", currentOrderId), { items: [...currentOrderData.items, { product: p.value, qty: q.value }] });
+            p.value = ''; q.value = ''; p.focus();
         };
 
         window.deleteItemFromOrder = async (i) => { if(confirm("ডিলিট করবেন?")) await updateDoc(doc(db, "orders", currentOrderId), { items: currentOrderData.items.filter((_, idx) => idx !== i) }); };
 
         document.getElementById('downloadPdfBtn').onclick = () => {
             const element = document.getElementById('invoice-print');
-            const noPdfElements = document.querySelectorAll('.no-pdf');
-            noPdfElements.forEach(el => el.style.display = 'none');
-            html2pdf().set({ margin: 10, filename: `${currentOrderData.chemist}.pdf`, html2canvas: { scale: 3, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save().then(() => {
-                noPdfElements.forEach(el => el.style.display = 'table-cell');
-            });
+            const noPdf = document.querySelectorAll('.no-pdf');
+            noPdf.forEach(el => el.style.display = 'none');
+            html2pdf().set({ margin: 10, filename: `${currentOrderData.chemist}.pdf`, html2canvas: { scale: 3 }, jsPDF: { unit: 'mm', format: 'a4' } }).from(element).save().then(() => noPdf.forEach(el => el.style.display = 'table-cell'));
         };
 
         document.getElementById('addGroupBtn').onclick = async () => {
@@ -351,7 +306,7 @@
             if(!g || !raw) return;
             const newCusts = raw.split(/[,\n]/).map(n => ({ group: g, name: n.trim() })).filter(c => c.name !== "");
             await setDoc(DOC_REF, { customers: arrayUnion(...newCusts) }, { merge: true });
-            document.getElementById('cInputBulk').value = ""; alert("কাস্টমার সেভ হয়েছে");
+            document.getElementById('cInputBulk').value = ""; alert("সেভ হয়েছে");
         };
 
         document.getElementById('saveMedBtn').onclick = async () => {
@@ -359,14 +314,9 @@
             if(!raw) return;
             const meds = raw.split(/[,\n]/).map(m => m.trim()).filter(m => m !== "");
             await setDoc(DOC_REF, { medicines: arrayUnion(...meds) }, { merge: true });
-            document.getElementById('mInputBulk').value = ""; alert("মেডিসিন সেভ হয়েছে");
+            document.getElementById('mInputBulk').value = ""; alert("সেভ হয়েছে");
         };
 
-        window.deleteGroup = async (g) => { if(confirm('Delete Group?')) await updateDoc(DOC_REF, { groups: arrayRemove(g) }); };
-        window.deleteMed = async (m) => { if(confirm('Delete Medicine?')) await updateDoc(DOC_REF, { medicines: arrayRemove(m) }); };
-        window.deleteCustomer = async (n, g) => { if(confirm('Delete Customer?')) await updateDoc(DOC_REF, { customers: arrayRemove({group: g, name: n}) }); };
-        window.showPage = (id) => { document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); };
-        window.toggleSection = (id) => { const el = document.getElementById(id); el.style.display = (el.style.display === "block") ? "none" : "block"; };
-    </script>
-</body>
-</html>
+        window.deleteGroup = async (g) => { if(confirm('Delete?')) await updateDoc(DOC_REF, { groups: arrayRemove(g) }); };
+        window.deleteCustomer = async (n, g) => { if(confirm('Delete?')) await updateDoc(DOC_REF, { customers: arrayRemove({group: g, name: n}) }); };
+        window.showPage = (id) => { document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active')); document.getElementById(

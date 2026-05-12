@@ -317,4 +317,26 @@
                 container.innerHTML += `
                     <div class="invoice-break">
                         <div style="text-align: center; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; margin-bottom: 15px;">
-                            <h2 style="margin:0; font-size: 24px; color: #4f46e5;">SHARIF PH
+                            <h2 style="margin:0; font-size: 24px; color: #4f46e5;">SHARIF PHARMA</h2>
+                            <p style="margin:0; font-size: 10px; color: #666; text-transform: uppercase;">Date: ${order.date} | Group: ${order.group}</p>
+                        </div>
+                        <h3 style="text-transform: uppercase; margin-bottom: 15px;">Chemist: ${order.chemist}</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead><tr style="background: #f3f4f6;"><th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Medicine</th><th style="text-align: center; padding: 8px; border: 1px solid #ddd;">Qty</th></tr></thead>
+                            <tbody>
+                                ${order.items.map((it, idx) => `
+                                    <tr>
+                                        <td style="padding: 8px; border: 1px solid #ddd; text-transform: uppercase; ${struckItems.includes(idx) ? 'text-decoration: line-through; color: #999;' : ''}">${it.product}</td>
+                                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; ${struckItems.includes(idx) ? 'text-decoration: line-through; color: #999;' : ''}">${it.qty}</td>
+                                    </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>`;
+            });
+
+            await html2pdf().set({ margin: 10, filename: `Combined_Orders.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(container).save();
+            container.classList.add('hidden');
+        };
+    </script>
+</body>
+</html>

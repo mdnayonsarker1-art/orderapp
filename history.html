@@ -9,13 +9,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* সিলেকশন কালার */
         .selected-card { 
             background: #e0e7ff !important; 
             border: 2px solid #4f46e5 !important;
             transform: scale(0.98);
         }
-        /* কাটা দাগের স্টাইল */
         .strike-text { 
             text-decoration: line-through; 
             text-decoration-color: red; 
@@ -107,8 +105,8 @@
         let currentResults = [];
         let currentOrderItems = [];
         let currentOrderId = '';
+        let lastScrollPos = 0; // স্ক্রল পজিশন মনে রাখার জন্য ভেরিয়েবল
 
-        // Load Groups
         onSnapshot(DOC_REF, (snap) => {
             if(snap.exists()){
                 const groups = snap.data().groups || [];
@@ -117,7 +115,6 @@
             }
         });
 
-        // Search Report
         document.getElementById('searchHistoryBtn').onclick = async () => {
             const from = document.getElementById('fromDate').value;
             const to = document.getElementById('toDate').value;
@@ -169,7 +166,6 @@
             `).join('');
         }
 
-        // Long Press সিলেকশন লজিক
         let timer;
         window.startLongPress = (id) => {
             timer = setTimeout(() => {
@@ -217,8 +213,11 @@
             renderList();
         };
 
-        // --- ভিউ কন্ট্রোল (ব্যাক বাটন ফিক্স) ---
+        // --- ভিউ কন্ট্রোল (স্ক্রল পজিশন ফিক্সড) ---
         window.openDetail = (id) => {
+            // ক্লিক করার আগে বর্তমান স্ক্রল পজিশন সেভ করে রাখা হচ্ছে
+            lastScrollPos = window.scrollY; 
+            
             currentOrderId = id;
             onSnapshot(doc(db, "orders", id), (snap) => {
                 if(!snap.exists()) return;
@@ -228,6 +227,10 @@
                 
                 document.getElementById('history-view').classList.add('hidden');
                 document.getElementById('detail-view').classList.remove('hidden');
+                
+                // ডিটেইল পেজে গেলে একদম উপরে দেখাবে
+                window.scrollTo(0, 0); 
+
                 document.getElementById('inv-date').innerText = data.date;
                 document.getElementById('inv-chemist').innerText = data.chemist;
                 
@@ -252,10 +255,14 @@
         window.closeDetail = () => {
             document.getElementById('detail-view').classList.add('hidden');
             document.getElementById('history-view').classList.remove('hidden');
-            // পেজ রিফ্রেশ হবে না, ফলে আগের লিস্ট জায়গায় থাকবে।
+            
+            // লিস্টে ফিরে আসার পর পেজটিকে আগের পজিশনে ফিরিয়ে নিয়ে যাওয়া হচ্ছে
+            setTimeout(() => {
+                window.scrollTo(0, lastScrollPos);
+            }, 10);
         };
 
-        // মেডিসিন এডিট
+        // এডিট, ডিলিট এবং PDF কোড আগের মতোই থাকবে...
         window.editItem = (index) => {
             const item = currentOrderItems[index];
             const newName = prompt("মেডিসিনের নতুন নাম:", item.product);
@@ -267,7 +274,6 @@
             }
         };
 
-        // মেডিসিন আন্ডারলাইন (Done)
         document.getElementById('markDoneBtn').onclick = async () => {
             const checkboxes = document.querySelectorAll('.item-checkbox:checked:not(:disabled)');
             if(checkboxes.length === 0) return alert("মেডিসিন সিলেক্ট করুন!");
@@ -279,7 +285,6 @@
             }
         };
 
-        // রিপোর্ট ডিলিট
         window.deleteReport = async (id) => {
             if(confirm("পুরো রিপোর্টটি ডিলিট করতে চান?")) {
                 await deleteDoc(doc(db, "orders", id));
@@ -287,7 +292,6 @@
             }
         };
 
-        // সিঙ্গেল মেডিসিন ডিলিট
         window.deleteItemFromOrder = async (index) => {
             if(confirm("এই আইটেমটি ডিলিট করবেন?")) {
                 const newItems = currentOrderItems.filter((_, i) => i !== index);
@@ -295,7 +299,6 @@
             }
         };
 
-        // সিঙ্গেল PDF ডাউনলোড
         document.getElementById('downloadPdfBtn').onclick = () => {
             const el = document.getElementById('invoice-print');
             const noPdfElements = document.querySelectorAll('.no-pdf');
@@ -305,7 +308,6 @@
             });
         };
 
-        // মাল্টি-ইনভয়েস PDF ডাউনলোড
         document.getElementById('downloadMultiPdfBtn').onclick = async () => {
             const container = document.getElementById('multi-invoice-container');
             container.innerHTML = '';

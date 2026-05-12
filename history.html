@@ -9,8 +9,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        .selected-card { border: 3px solid #4f46e5 !important; background: #eef2ff !important; }
-        .strike-text { text-decoration: line-through; text-decoration-color: red; text-decoration-thickness: 2px; color: #94a3b8 !important; }
+        /* সিলেকশন কালার */
+        .selected-card { 
+            background: #e0e7ff !important; 
+            border: 2px solid #4f46e5 !important;
+            transform: scale(0.98);
+        }
+        /* কাটা দাগের স্টাইল */
+        .strike-text { 
+            text-decoration: line-through; 
+            text-decoration-color: red; 
+            text-decoration-thickness: 2px; 
+            color: #94a3b8 !important; 
+        }
         .item-checkbox { width: 18px; height: 18px; accent-color: #4f46e5; }
         .invoice-break { page-break-after: always; border-bottom: 2px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; font-family: sans-serif; }
     </style>
@@ -45,7 +56,7 @@
 
         <div id="multiSelectActions" class="hidden mt-4">
             <button id="downloadMultiPdfBtn" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-sm">
-                <i class="fa-solid fa-file-pdf mr-2"></i> সিলেক্টেড ইনভয়েস PDF
+                <i class="fa-solid fa-file-pdf mr-2"></i> সিলেক্টেড PDF ডাউনলোড
             </button>
         </div>
 
@@ -54,7 +65,7 @@
 
     <div id="detail-view" class="hidden">
         <div class="flex justify-between items-center mb-6">
-            <button onclick="location.reload()" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-900">
+            <button onclick="window.closeDetail()" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-900">
                 <i class="fa-solid fa-arrow-left"></i>
             </button>
             <div class="flex gap-2">
@@ -92,10 +103,12 @@
         document.getElementById('toDate').value = today;
 
         let selectedOrders = new Set();
+        let isSelectMode = false;
         let currentResults = [];
         let currentOrderItems = [];
         let currentOrderId = '';
 
+        // Load Groups
         onSnapshot(DOC_REF, (snap) => {
             if(snap.exists()){
                 const groups = snap.data().groups || [];
@@ -104,6 +117,7 @@
             }
         });
 
+        // Search Report
         document.getElementById('searchHistoryBtn').onclick = async () => {
             const from = document.getElementById('fromDate').value;
             const to = document.getElementById('toDate').value;
@@ -111,6 +125,7 @@
             const container = document.getElementById('history-data');
             
             selectedOrders.clear();
+            isSelectMode = false;
             updateUI();
 
             container.innerHTML = '<p class="text-center font-bold">সার্চ হচ্ছে...</p>';
@@ -133,23 +148,52 @@
         };
 
         function renderList() {
-            document.getElementById('history-data').innerHTML = currentResults.map(d => `
-                <div onclick="window.toggleSelect('${d.id}')" class="setup-card flex justify-between items-center !p-4 border-l-8 border-indigo-600 ${selectedOrders.has(d.id) ? 'selected-card' : ''}">
-                    <div class="flex-1 cursor-pointer">
+            const container = document.getElementById('history-data');
+            container.innerHTML = currentResults.map(d => `
+                <div id="card-${d.id}" 
+                     class="setup-card flex justify-between items-center !p-4 border-l-8 border-indigo-600 transition-all cursor-pointer ${selectedOrders.has(d.id) ? 'selected-card' : ''}"
+                     onmousedown="window.startLongPress('${d.id}')" 
+                     onmouseup="window.endLongPress()"
+                     ontouchstart="window.startLongPress('${d.id}')" 
+                     ontouchend="window.endLongPress()"
+                     onclick="window.handleCardClick('${d.id}')">
+                    <div class="flex-1">
                         <p class="font-black text-slate-800 uppercase italic text-sm">${d.chemist}</p>
                         <p class="text-[9px] font-bold text-slate-400 uppercase">${d.group} • ${d.date}</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="event.stopPropagation(); window.openDetail('${d.id}')" class="p-2 text-indigo-600"><i class="fa-solid fa-eye"></i></button>
+                        ${selectedOrders.has(d.id) ? '<i class="fa-solid fa-circle-check text-indigo-600"></i>' : ''}
                         <button onclick="event.stopPropagation(); window.deleteReport('${d.id}')" class="p-2 text-red-400"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </div>
             `).join('');
         }
 
+        // Long Press সিলেকশন লজিক
+        let timer;
+        window.startLongPress = (id) => {
+            timer = setTimeout(() => {
+                if (!isSelectMode) {
+                    isSelectMode = true;
+                    window.toggleSelect(id);
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }
+            }, 600);
+        };
+        window.endLongPress = () => clearTimeout(timer);
+
+        window.handleCardClick = (id) => {
+            if (isSelectMode) window.toggleSelect(id);
+            else window.openDetail(id);
+        };
+
         window.toggleSelect = (id) => {
-            if(selectedOrders.has(id)) selectedOrders.delete(id);
-            else selectedOrders.add(id);
+            if(selectedOrders.has(id)) {
+                selectedOrders.delete(id);
+                if (selectedOrders.size === 0) isSelectMode = false;
+            } else {
+                selectedOrders.add(id);
+            }
             updateUI();
             renderList();
         };
@@ -162,12 +206,18 @@
         }
 
         document.getElementById('allSelectBtn').onclick = () => {
-            if(selectedOrders.size === currentResults.length) selectedOrders.clear();
-            else currentResults.forEach(r => selectedOrders.add(r.id));
+            if(selectedOrders.size === currentResults.length) {
+                selectedOrders.clear();
+                isSelectMode = false;
+            } else {
+                isSelectMode = true;
+                currentResults.forEach(r => selectedOrders.add(r.id));
+            }
             updateUI();
             renderList();
         };
 
+        // --- ভিউ কন্ট্রোল (ব্যাক বাটন ফিক্স) ---
         window.openDetail = (id) => {
             currentOrderId = id;
             onSnapshot(doc(db, "orders", id), (snap) => {
@@ -199,6 +249,13 @@
             });
         };
 
+        window.closeDetail = () => {
+            document.getElementById('detail-view').classList.add('hidden');
+            document.getElementById('history-view').classList.remove('hidden');
+            // পেজ রিফ্রেশ হবে না, ফলে আগের লিস্ট জায়গায় থাকবে।
+        };
+
+        // মেডিসিন এডিট
         window.editItem = (index) => {
             const item = currentOrderItems[index];
             const newName = prompt("মেডিসিনের নতুন নাম:", item.product);
@@ -210,6 +267,7 @@
             }
         };
 
+        // মেডিসিন আন্ডারলাইন (Done)
         document.getElementById('markDoneBtn').onclick = async () => {
             const checkboxes = document.querySelectorAll('.item-checkbox:checked:not(:disabled)');
             if(checkboxes.length === 0) return alert("মেডিসিন সিলেক্ট করুন!");
@@ -221,6 +279,7 @@
             }
         };
 
+        // রিপোর্ট ডিলিট
         window.deleteReport = async (id) => {
             if(confirm("পুরো রিপোর্টটি ডিলিট করতে চান?")) {
                 await deleteDoc(doc(db, "orders", id));
@@ -228,6 +287,7 @@
             }
         };
 
+        // সিঙ্গেল মেডিসিন ডিলিট
         window.deleteItemFromOrder = async (index) => {
             if(confirm("এই আইটেমটি ডিলিট করবেন?")) {
                 const newItems = currentOrderItems.filter((_, i) => i !== index);
@@ -235,6 +295,7 @@
             }
         };
 
+        // সিঙ্গেল PDF ডাউনলোড
         document.getElementById('downloadPdfBtn').onclick = () => {
             const el = document.getElementById('invoice-print');
             const noPdfElements = document.querySelectorAll('.no-pdf');
@@ -244,6 +305,7 @@
             });
         };
 
+        // মাল্টি-ইনভয়েস PDF ডাউনলোড
         document.getElementById('downloadMultiPdfBtn').onclick = async () => {
             const container = document.getElementById('multi-invoice-container');
             container.innerHTML = '';
@@ -255,26 +317,4 @@
                 container.innerHTML += `
                     <div class="invoice-break">
                         <div style="text-align: center; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; margin-bottom: 15px;">
-                            <h2 style="margin:0; font-size: 24px; color: #4f46e5;">SHARIF PHARMA</h2>
-                            <p style="margin:0; font-size: 10px; color: #666; text-transform: uppercase;">Date: ${order.date} | Group: ${order.group}</p>
-                        </div>
-                        <h3 style="text-transform: uppercase; margin-bottom: 15px;">Chemist: ${order.chemist}</h3>
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead><tr style="background: #f3f4f6;"><th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Medicine</th><th style="text-align: center; padding: 8px; border: 1px solid #ddd;">Qty</th></tr></thead>
-                            <tbody>
-                                ${order.items.map((it, idx) => `
-                                    <tr>
-                                        <td style="padding: 8px; border: 1px solid #ddd; text-transform: uppercase; ${struckItems.includes(idx) ? 'text-decoration: line-through; color: #999;' : ''}">${it.product}</td>
-                                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; ${struckItems.includes(idx) ? 'text-decoration: line-through; color: #999;' : ''}">${it.qty}</td>
-                                    </tr>`).join('')}
-                            </tbody>
-                        </table>
-                    </div>`;
-            });
-
-            await html2pdf().set({ margin: 10, filename: `Combined_Orders.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(container).save();
-            container.classList.add('hidden');
-        };
-    </script>
-</body>
-</html>
+                            <h2 style="margin:0; font-size: 24px; color: #4f46e5;">SHARIF PH

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>অর্ডার রিপোর্ট - Sharif Pharma</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="px-6 pt-8 max-w-md mx-auto pb-10">
+    
+    <!-- History Search Section -->
+    <div id="history-view">
+        <div class="flex items-center gap-4 mb-6">
+            <a href="index.html" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-600">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+            <h1 class="text-2xl font-black text-slate-800 uppercase italic">History</h1>
+        </div>
+
+        <div class="setup-card !p-4 bg-indigo-50/50 border-none">
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                    <label class="text-[9px] font-bold text-slate-400 ml-2 uppercase">From</label>
+                    <input type="date" id="fromDate" class="large-input !p-3 !text-xs !mb-0">
+                </div>
+                <div>
+                    <label class="text-[9px] font-bold text-slate-400 ml-2 uppercase">To</label>
+                    <input type="date" id="toDate" class="large-input !p-3 !text-xs !mb-0">
+                </div>
+            </div>
+            <select id="searchGroupFilter" class="large-input !text-sm !mb-2 !p-4"></select>
+            <button id="searchHistoryBtn" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-xs">সার্চ রিপোর্ট</button>
+        </div>
+
+        <div id="history-data" class="space-y-4 mt-6"></div>
+    </div>
+
+    <!-- Detail & Invoice Section -->
+    <div id="detail-view" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="location.reload()" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-900">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <button id="downloadPdfBtn" class="bg-emerald-600 text-white px-6 py-4 rounded-2xl text-sm font-black uppercase shadow-lg">
+                <i class="fa-solid fa-file-pdf mr-2"></i> PDF
+            </button>
+        </div>
+
+        <div id="invoice-print" class="bg-white p-6 rounded-[2.5rem] border shadow-xl mb-6">
+            <div class="text-center border-b pb-4 mb-4">
+                <h2 class="text-2xl font-black italic text-indigo-700">SHARIF PHARMA</h2>
+                <p id="inv-date" class="text-[9px] font-bold text-slate-400 uppercase mt-1"></p>
+            </div>
+            <p id="inv-chemist" class="text-xl font-black uppercase text-slate-800 italic mb-4"></p>
+            <table class="order-table">
+                <thead>
+                    <tr>
+                        <th width="70%">Medicine</th>
+                        <th width="30%" class="text-center">Qty</th>
+                        <th class="no-pdf text-center">X</th>
+                    </tr>
+                </thead>
+                <tbody id="inv-items-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, DOC_REF, today } from './config.js';
+        import { collection, getDocs, query, where, doc, deleteDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        document.getElementById('fromDate').value = today;
+        document.getElementById('toDate').value = today;
+
+        // Load Groups for Filter
+        onSnapshot(DOC_REF, (snap) => {
+            if(snap.exists()){
+                const groups = snap.data().groups || [];
+                document.getElementById('searchGroupFilter').innerHTML = '<option value="ALL">All Groups</option>' + 
+                    groups.map(g => `<option value="${g}">${g}</option>`).join('');
+            }
+        });
+
+        // Search Logic
+        document.getElementById('searchHistoryBtn').onclick = async () => {
+            const from = document.getElementById('fromDate').value;
+            const to = document.getElementById('toDate').value;
+            const grp = document.getElementById('searchGroupFilter').value;
+            const container = document.getElementById('history-data');
+            
+            if(!from || !to) return alert("Select Date");
+            container.innerHTML = '<p class="text-center font-bold">সার্চ হচ্ছে...</p>';
+
+            const q = query(collection(db, "orders"), where("date", ">=", from), where("date", "<=", to));
+            const snap = await getDocs(q);
+            let results = [];
+            snap.forEach(d => {
+                const data = d.data();
+                if(grp === "ALL" || data.group === grp) results.push({id: d.id, ...data});
+            });
+            
+            results.sort((a,b) => b.timestamp - a.timestamp);
+
+            if(results.length === 0) {
+                container.innerHTML = '<p class="text-center text-slate-400">কোন ডাটা পাওয়া যায়নি</p>';
+                return;
+            }
+
+            container.innerHTML = results.map(d => `
+                <div class="setup-card flex justify-between items-center !p-4 border-l-8 border-indigo-600">
+                    <div onclick="window.openDetail('${d.id}')" class="flex-1 cursor-pointer">
+                        <p class="font-black text-slate-800 uppercase italic">${d.chemist}</p>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase">${d.group} • ${d.date}</p>
+                    </div>
+                    <button onclick="window.deleteReport('${d.id}')" class="p-3 text-red-400">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            `).join('');
+        };
+
+        // Open Detail View
+        let currentOrderItems = [];
+        let currentOrderId = '';
+
+        window.openDetail = (id) => {
+            currentOrderId = id;
+            onSnapshot(doc(db, "orders", id), (snap) => {
+                if(!snap.exists()) return;
+                const data = snap.data();
+                currentOrderItems = data.items || [];
+                
+                document.getElementById('history-view').classList.add('hidden');
+                document.getElementById('detail-view').classList.remove('hidden');
+                
+                document.getElementById('inv-date').innerText = data.date;
+                document.getElementById('inv-chemist').innerText = data.chemist;
+                
+                document.getElementById('inv-items-table-body').innerHTML = currentOrderItems.map((it, i) => `
+                    <tr>
+                        <td class="uppercase text-[12px]">${it.product}</td>
+                        <td class="text-center font-black text-indigo-600">x${it.qty}</td>
+                        <td class="no-pdf text-center">
+                            <button onclick="window.deleteItemFromOrder(${i})" class="text-red-300">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            });
+        };
+
+        // Delete Full Report
+        window.deleteReport = async (id) => {
+            if(confirm("পুরো রিপোর্টটি ডিলিট করতে চান?")) {
+                await deleteDoc(doc(db, "orders", id));
+                document.getElementById('searchHistoryBtn').click();
+            }
+        };
+
+        // Delete Single Item from Order
+        window.deleteItemFromOrder = async (index) => {
+            if(confirm("এই আইটেমটি ডিলিট করবেন?")) {
+                const newItems = currentOrderItems.filter((_, i) => i !== index);
+                await updateDoc(doc(db, "orders", currentOrderId), { items: newItems });
+            }
+        };
+
+        // PDF Download
+        document.getElementById('downloadPdfBtn').onclick = () => {
+            const el = document.getElementById('invoice-print');
+            const noPdfElements = document.querySelectorAll('.no-pdf');
+            
+            noPdfElements.forEach(el => el.style.display = 'none');
+            
+            const opt = {
+                margin: 10,
+                filename: `Order_${document.getElementById('inv-chemist').innerText}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 3 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(el).save().then(() => {
+                noPdfElements.forEach(el => el.style.display = 'table-cell');
+            });
+        };
+
+    </script>
+</body>
+</html>

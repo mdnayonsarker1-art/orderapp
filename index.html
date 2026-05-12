@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DUE MEDICINE- Home</title>
+    <title>Sharif Pharma</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,12 +17,11 @@
             <a href="settings.html" class="absolute top-6 right-6 bg-white/20 p-3 rounded-2xl text-white">
                 <i class="fa-solid fa-sliders"></i>
             </a>
-            <h1 class="text-3xl font-black text-white uppercase italic">SHARIF PHARMA</h1>
+            <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter">SHARIF PHARMA</h1>
             <p id="sub-title" class="text-indigo-100 text-[10px] font-bold tracking-widest uppercase opacity-80">Inventory Manager</p>
         </div>
         
         <div class="px-6 space-y-4 pb-10">
-            <!-- Medicine Store -->
             <a href="store.html" class="w-full bg-emerald-600 text-white p-6 rounded-[2.5rem] flex items-center justify-between shadow-xl">
                 <div class="flex items-center gap-4">
                     <div class="bg-white/20 p-3 rounded-2xl"><i class="fa-solid fa-warehouse"></i></div>
@@ -31,12 +30,11 @@
                 <i class="fa-solid fa-chevron-right opacity-50"></i>
             </a>
 
-            <!-- Groups Grid -->
+            <!-- Group List Container -->
             <div id="main-group-list" class="grid grid-cols-2 gap-4 text-center">
-                <div class="col-span-2 py-10 text-slate-400 font-bold text-xs uppercase italic">Synchronizing...</div>
+                <div class="col-span-2 py-10 text-slate-400 font-bold text-xs uppercase italic animate-pulse">Loading Data...</div>
             </div>
 
-            <!-- Order Report -->
             <a href="history.html" class="w-full bg-slate-900 text-white p-6 rounded-[2.5rem] flex items-center justify-between shadow-2xl">
                 <div class="flex items-center gap-4">
                     <div class="bg-indigo-500 p-3 rounded-2xl"><i class="fa-solid fa-file-invoice"></i></div>
@@ -51,39 +49,38 @@
         import { DOC_REF } from './config.js';
         import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Service Worker Register
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').catch(err => console.log("SW Error", err));
+            navigator.serviceWorker.register('./sw.js');
         }
 
-        // Language Logic
-        const translations = {
-            en: { manager: "Inventory Manager", store: "Medicine Store", history: "Order Report", empty: "No Groups Found" },
-            bn: { manager: "ইনভেন্টরি ম্যানেজার", store: "মেডিসিন স্টোর", history: "অর্ডার রিপোর্ট", empty: "কোনো গ্রুপ নেই" }
-        };
         const lang = localStorage.getItem('appLang') || 'en';
-        const t = translations[lang];
+        const t = {
+            en: { manager: "Inventory Manager", store: "Medicine Store", history: "Order Report", empty: "No Groups" },
+            bn: { manager: "ইনভেন্টরি ম্যানেজার", store: "মেডিসিন স্টোর", history: "অর্ডার রিপোর্ট", empty: "গ্রুপ নেই" }
+        }[lang];
 
         document.getElementById('sub-title').innerText = t.manager;
         document.getElementById('nav-store').innerText = t.store;
         document.getElementById('nav-history').innerText = t.history;
 
-        // Firebase Sync (Offline Support Enabled)
-        onSnapshot(DOC_REF, (snap) => {
+        // অফলাইন ডাটা দ্রুত লোড করার ট্রিক
+        onSnapshot(DOC_REF, { includeMetadataChanges: true }, (snap) => {
             const listUI = document.getElementById('main-group-list');
             if (snap.exists()) {
                 const groups = snap.data()?.groups || [];
                 if (groups.length > 0) {
                     listUI.innerHTML = groups.map(g => `
-                        <a href="order.html?group=${g}" class="bg-white p-6 rounded-[2rem] border shadow-sm active:scale-95 transition-transform">
+                        <a href="order.html?group=${g}" class="bg-white p-6 rounded-[2rem] border shadow-sm active:scale-95 transition-all">
                             <i class="fa-solid fa-folder text-indigo-500 text-3xl mb-3"></i>
                             <div class="font-black text-slate-700 text-[11px] uppercase">${g}</div>
                         </a>
                     `).join('');
                 } else {
-                    listUI.innerHTML = `<div class="col-span-2 p-10 text-slate-400 font-bold italic">${t.empty}</div>`;
+                    listUI.innerHTML = `<div class="col-span-2 p-10 text-slate-300 font-bold uppercase text-xs">${t.empty}</div>`;
                 }
             }
+        }, (error) => {
+            console.log("Sync Error:", error);
         });
     </script>
 </body>

@@ -2,8 +2,17 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sharif Pharma - Home</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Sharif Pharma">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3022/3022202.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -44,6 +53,15 @@
         import { DOC_REF } from './config.js';
         import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('SW Registered!');
+                }).catch(err => console.log('SW Failed', err));
+            });
+        }
+
         // --- ল্যাঙ্গুয়েজ সিস্টেম ---
         const translations = {
             en: {
@@ -58,11 +76,9 @@
             }
         };
 
-        // বর্তমান ভাষা নির্বাচন
         const currentLang = localStorage.getItem('appLang') || 'en';
         const t = translations[currentLang];
 
-        // UI আপডেট ফাংশন
         function applyLanguage() {
             document.getElementById('sub-title').innerText = t.manager;
             document.getElementById('nav-store').innerText = t.store;
@@ -71,7 +87,6 @@
         
         applyLanguage();
 
-        // --- Firebase গ্রুপ লিস্ট রেন্ডারিং ---
         onSnapshot(DOC_REF, (snap) => {
             const groups = snap.data()?.groups || [];
             document.getElementById('main-group-list').innerHTML = groups.map(g => `

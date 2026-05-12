@@ -1,6 +1,6 @@
 {
   "name": "Sharif Pharma",
-  "short_name": "DUE medicine",
+  "short_name": "S-Pharma",
   "description": "Inventory and Order Management System",
   "start_url": "index.html",
   "display": "standalone",
@@ -8,7 +8,7 @@
   "theme_color": "#4f46e5",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2966/2966327.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/3022/3022202.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

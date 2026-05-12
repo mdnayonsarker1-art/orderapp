@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Settings - Sharif Pharma</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="px-6 pt-8 max-w-md mx-auto pb-20">
+
+    <div class="flex items-center gap-4 mb-8">
+        <a href="index.html" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-900">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <h1 class="text-2xl font-black text-slate-800 uppercase italic">Settings</h1>
+    </div>
+
+    <div class="setup-card">
+        <div class="card-accent bg-indigo-600"></div>
+        <h3 class="text-[10px] font-black text-indigo-600 uppercase mb-4 tracking-widest">GROUPS</h3>
+        <div class="flex gap-2">
+            <input type="text" id="gInput" placeholder="Ex: GB-1" class="!mb-0 !p-3 rounded-xl border-2 flex-1 outline-none">
+            <button id="addGroupBtn" class="bg-indigo-950 text-white px-5 rounded-xl font-black text-xs">ADD</button>
+        </div>
+        <div id="gList" class="flex flex-wrap gap-2 mt-4"></div>
+    </div>
+
+    <div class="setup-card">
+        <div class="card-accent bg-emerald-500"></div>
+        <h3 class="text-[10px] font-black text-emerald-600 uppercase mb-4 tracking-widest">CUSTOMERS</h3>
+        <select id="cGroupSelect" class="large-input !text-sm">
+            <option value="">Select Group First</option>
+        </select>
+        <textarea id="cInputBulk" rows="2" placeholder="কাস্টমারের নাম (কমা দিয়ে লিখুন)..." class="large-input !text-sm"></textarea>
+        <button id="saveCustBtn" class="save-btn bg-emerald-600">SAVE CUSTOMERS</button>
+        
+        <div id="toggleCustView" class="text-center mt-4 text-[10px] font-bold text-slate-400 cursor-pointer uppercase tracking-widest">
+            SHOW & DELETE <i class="fa-solid fa-chevron-down ml-1"></i>
+        </div>
+        <div id="cViewWrap" class="hidden mt-4">
+            <div id="cSettingsGroupButtons" class="flex flex-wrap gap-2 mb-4"></div>
+            <div id="cSettingsListUI" class="space-y-2 border-t pt-4 max-h-[250px] overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <div class="setup-card">
+        <div class="card-accent bg-orange-500"></div>
+        <h3 class="text-[10px] font-black text-orange-600 uppercase mb-4 tracking-widest">MEDICINE</h3>
+        <textarea id="mInputBulk" rows="2" placeholder="মেডিসিন লিস্ট (কমা দিয়ে লিখুন)..." class="large-input !text-sm"></textarea>
+        <button id="saveMedBtn" class="save-btn bg-orange-600">SAVE MEDICINE</button>
+        <div id="mListUI" class="flex flex-wrap gap-2 mt-4"></div>
+    </div>
+
+    <script type="module">
+        import { db, DOC_REF } from './config.js';
+        import { onSnapshot, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        let masterData = { groups: [], customers: [], medicines: [] };
+
+        // Real-time Data Sync
+        onSnapshot(DOC_REF, (snap) => {
+            if (snap.exists()) {
+                masterData = snap.data();
+                renderSettingsUI();
+            }
+        });
+
+        function renderSettingsUI() {
+            // Render Groups
+            document.getElementById('gList').innerHTML = (masterData.groups || []).map(g => `
+                <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">
+                    ${g} <i onclick="window.removeMasterItem('groups', '${g}')" class="fa-solid fa-xmark ml-1 cursor-pointer"></i>
+                </span>
+            `).join('');
+
+            // Update Dropdowns
+            document.getElementById('cGroupSelect').innerHTML = '<option value="">Select Group</option>' + 
+                (masterData.groups || []).map(g => `<option value="${g}">${g}</option>`).join('');
+            
+            document.getElementById('cSettingsGroupButtons').innerHTML = (masterData.groups || []).map(g => `
+                <button onclick="window.viewCustomersByGroup('${g}')" class="bg-slate-100 text-slate-500 px-3 py-2 rounded-xl text-[10px] font-black uppercase">${g}</button>
+            `).join('');
+
+            // Render Medicines
+            document.getElementById('mListUI').innerHTML = (masterData.medicines || []).map(m => `
+                <span class="bg-orange-50 text-orange-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">
+                    ${m} <i onclick="window.removeMasterItem('medicines', '${m}')" class="fa-solid fa-xmark ml-1 cursor-pointer"></i>
+                </span>
+            `).join('');
+        }
+
+        // Add Group
+        document.getElementById('addGroupBtn').onclick = async () => {
+            const v = document.getElementById('gInput').value.trim().toUpperCase();
+            if (v) {
+                await updateDoc(DOC_REF, { groups: arrayUnion(v) });
+                document.getElementById('gInput').value = '';
+            }
+        };
+
+        // Add Medicines
+        document.getElementById('saveMedBtn').onclick = async () => {
+            const txt = document.getElementById('mInputBulk').value;
+            const meds = txt.split(/[,\n]/).map(m => m.trim().toUpperCase()).filter(m => m);
+            if (meds.length) {
+                await updateDoc(DOC_REF, { medicines: arrayUnion(...meds) });
+                document.getElementById('mInputBulk').value = '';
+            }
+        };
+
+        // Add Customers
+        document.getElementById('saveCustBtn').onclick = async () => {
+            const grp = document.getElementById('cGroupSelect').value;
+            const txt = document.getElementById('cInputBulk').value;
+            const names = txt.split(/[,\n]/).map(n => n.trim().toUpperCase()).filter(n => n);
+            
+            if (grp && names.length) {
+                const newCusts = names.map(n => ({ name: n, group: grp }));
+                await updateDoc(DOC_REF, { customers: arrayUnion(...newCusts) });
+                document.getElementById('cInputBulk').value = '';
+                alert("Customers Added!");
+            } else {
+                alert("Select Group and Enter Names");
+            }
+        };
+
+        // Helper functions attached to window for HTML onclicks
+        window.removeMasterItem = async (key, val) => {
+            if (confirm(`Delete ${val}?`)) {
+                await updateDoc(DOC_REF, { [key]: arrayRemove(val) });
+            }
+        };
+
+        window.viewCustomersByGroup = (g) => {
+            const filtered = (masterData.customers || []).filter(c => c.group === g);
+            document.getElementById('cSettingsListUI').innerHTML = filtered.map(c => `
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border mb-1">
+                    <span class="text-sm font-bold uppercase">${c.name}</span>
+                    <i onclick="window.deleteCustomer('${c.name}', '${c.group}')" class="fa-solid fa-trash text-red-400 p-1 cursor-pointer"></i>
+                </div>
+            `).join('');
+        };
+
+        window.deleteCustomer = async (n, g) => {
+            if (confirm("Delete Customer?")) {
+                const updatedList = masterData.customers.filter(c => !(c.name === n && c.group === g));
+                await updateDoc(DOC_REF, { customers: updatedList });
+                window.viewCustomersByGroup(g); // Refresh list
+            }
+        };
+
+        document.getElementById('toggleCustView').onclick = () => {
+            document.getElementById('cViewWrap').classList.toggle('hidden');
+        };
+
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>অর্ডার ফর্ম - শরীফ ফার্মা</title>
+    <title>Order Form - Sharif Pharma</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -19,7 +19,7 @@
         </div>
         
         <button onclick="window.askNewName()" class="w-full mb-4 bg-indigo-600 text-white p-5 rounded-[2rem] font-black shadow-lg flex items-center justify-center gap-3 uppercase text-sm italic">
-            <i class="fa-solid fa-plus-circle text-lg"></i> Add New (Manual Entry)
+            <i class="fa-solid fa-plus-circle text-lg"></i> <span id="btn-add-manual">Add New (Manual Entry)</span>
         </button>
 
         <div class="relative mb-6">
@@ -33,7 +33,7 @@
     <div id="form-view" class="hidden">
         <div class="flex justify-between items-center mb-6">
             <button onclick="window.goBackToChemist()" class="font-bold text-indigo-600 flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border">
-                <i class="fa-solid fa-arrow-left"></i> ব্যাক
+                <i class="fa-solid fa-arrow-left"></i> <span id="btn-back">Back</span>
             </button>
             <input type="date" id="orderDate" class="p-2 rounded-xl border font-bold text-slate-600 text-xs shadow-sm">
         </div>
@@ -60,6 +60,53 @@
         import { db, DOC_REF, today } from './config.js';
         import { onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // --- ল্যাঙ্গুয়েজ ডাটা ---
+        const translations = {
+            en: {
+                manualAdd: "Add New (Manual Entry)",
+                searchPl: "Search Chemist...",
+                back: "Back",
+                medPl: "Medicine Name...",
+                qtyPl: "Quantity",
+                addBtn: "Add to Cart",
+                saveBtn: "Save Order",
+                cartEmpty: "Cart is empty!",
+                orderSaved: "Order Saved!",
+                promptName: "Enter Chemist Name:",
+                notInList: "Not in list",
+                quickAdd: "Quick Add"
+            },
+            bn: {
+                manualAdd: "নতুন নাম যোগ করুন",
+                searchPl: "সার্চ করুন...",
+                back: "ব্যাক",
+                medPl: "মেডিসিনের নাম...",
+                qtyPl: "পরিমাণ",
+                addBtn: "অ্যাড করুন",
+                saveBtn: "অর্ডার সেভ করুন",
+                cartEmpty: "কার্ট খালি!",
+                orderSaved: "অর্ডার সেভ হয়েছে!",
+                promptName: "কেমিস্টের নাম লিখুন:",
+                notInList: "লিস্টে নেই",
+                quickAdd: "দ্রুত যোগ"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLang') || 'en';
+        const t = translations[currentLang];
+
+        function applyLanguage() {
+            document.getElementById('btn-add-manual').innerText = t.manualAdd;
+            document.getElementById('custSearch').placeholder = t.searchPl;
+            document.getElementById('btn-back').innerText = t.back;
+            document.getElementById('product-name').placeholder = t.medPl;
+            document.getElementById('quantity').placeholder = t.qtyPl;
+            document.getElementById('addToCartBtn').innerText = t.addBtn;
+            document.getElementById('saveOrderBtn').innerText = t.saveBtn;
+        }
+        applyLanguage();
+
+        // --- মূল লজিক ---
         const params = new URLSearchParams(window.location.search);
         const currentGroup = params.get('group') || "No Group";
         let cart = [], currentChemist = '', masterData = {};
@@ -87,9 +134,9 @@
             if (list.length === 0 && searchText.length > 0) {
                 container.innerHTML = `
                     <div class="p-8 bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-[2.5rem] text-center">
-                        <p class="text-slate-500 font-bold mb-4 uppercase text-[10px] italic">"${searchText}" লিস্টে নেই</p>
+                        <p class="text-slate-500 font-bold mb-4 uppercase text-[10px] italic">"${searchText}" ${t.notInList}</p>
                         <button onclick="window.openForm('${searchText}')" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg uppercase">
-                            <i class="fa-solid fa-plus mr-2"></i> Quick Add: ${searchText}
+                            <i class="fa-solid fa-plus mr-2"></i> ${t.quickAdd}: ${searchText}
                         </button>
                     </div>`;
             } else {
@@ -100,9 +147,8 @@
             }
         }
 
-        // ম্যানুয়াল নাম এন্ট্রি করার জন্য প্রম্পট
         window.askNewName = () => {
-            const name = prompt("কেমিস্টের নাম লিখুন:");
+            const name = prompt(t.promptName);
             if (name && name.trim() !== "") {
                 window.openForm(name.trim());
             }
@@ -147,12 +193,12 @@
         window.removeCartItem = (i) => { cart.splice(i,1); renderCart(); };
 
         document.getElementById('saveOrderBtn').onclick = async () => {
-            if(!cart.length) return alert("কার্ট খালি!");
+            if(!cart.length) return alert(t.cartEmpty);
             const selectedDate = document.getElementById('orderDate').value;
             await addDoc(collection(db, "orders"), {
                 group: currentGroup, chemist: currentChemist, items: cart, date: selectedDate, timestamp: new Date().getTime()
             });
-            alert("অর্ডার সেভ হয়েছে!");
+            alert(t.orderSaved);
             window.goBackToChemist();
         };
     </script>

@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        /* ল্যাঙ্গুয়েজ অপশনের জন্য কিছু স্টাইল */
         .lang-opt { transition: all 0.3s ease; border: 2px solid #f1f5f9; }
         .lang-opt.active { border-color: #4f46e5; background-color: #f5f3ff; }
     </style>
@@ -36,6 +35,7 @@
         </div>
     </div>
 
+    <!-- গ্রুপ সেটিংস -->
     <div class="setup-card">
         <div class="card-accent bg-indigo-600"></div>
         <h3 id="group-title" class="text-[10px] font-black text-indigo-600 uppercase mb-4 tracking-widest">GROUPS</h3>
@@ -46,6 +46,7 @@
         <div id="gList" class="flex flex-wrap gap-2 mt-4"></div>
     </div>
 
+    <!-- কাস্টমার সেটিংস -->
     <div class="setup-card">
         <div class="card-accent bg-emerald-500"></div>
         <h3 id="customer-title" class="text-[10px] font-black text-emerald-600 uppercase mb-4 tracking-widest">CUSTOMERS</h3>
@@ -64,6 +65,7 @@
         </div>
     </div>
 
+    <!-- মেডিসিন সেটিংস -->
     <div class="setup-card">
         <div class="card-accent bg-orange-500"></div>
         <h3 id="med-title" class="text-[10px] font-black text-orange-600 uppercase mb-4 tracking-widest">MEDICINE</h3>
@@ -78,16 +80,53 @@
 
         let masterData = { groups: [], customers: [], medicines: [] };
 
+        // --- ল্যাঙ্গুয়েজ ডাটা ---
+        const translations = {
+            en: {
+                mainTitle: "Settings",
+                langTitle: "Language / ভাষা",
+                groupTitle: "Groups",
+                custTitle: "Customers",
+                medTitle: "Medicine",
+                addBtn: "ADD",
+                saveCust: "SAVE CUSTOMERS",
+                saveMed: "SAVE MEDICINE",
+                showDel: "SHOW & DELETE",
+                selGrp: "Select Group First",
+                custPl: "Customer names (comma separated)...",
+                medPl: "Medicine list (comma separated)...",
+                delConfirm: "Delete this item?",
+                custAdded: "Customers Added!"
+            },
+            bn: {
+                mainTitle: "সেটিংস",
+                langTitle: "ভাষা / Language",
+                groupTitle: "গ্রুপসমূহ",
+                custTitle: "কাস্টমার",
+                medTitle: "মেডিসিন",
+                addBtn: "যোগ",
+                saveCust: "কাস্টমার সেভ করুন",
+                saveMed: "মেডিসিন সেভ করুন",
+                showDel: "দেখান ও ডিলিট করুন",
+                selGrp: "প্রথমে গ্রুপ সিলেক্ট করুন",
+                custPl: "কাস্টমারের নাম (কমা দিয়ে লিখুন)...",
+                medPl: "মেডিসিন লিস্ট (কমা দিয়ে লিখুন)...",
+                delConfirm: "এটি ডিলিট করতে চান?",
+                custAdded: "কাস্টমার যোগ হয়েছে!"
+            }
+        };
+
         // --- ল্যাঙ্গুয়েজ লজিক ---
         window.changeLanguage = (lang) => {
             localStorage.setItem('appLang', lang);
             applyLanguage();
-            // রিলোড দিলে সব পেজ আপডেট হয়ে যাবে
+            // রিলোড দিলে হোম পেজসহ সব পেজে আপডেট হয়ে যাবে
             window.location.reload();
         };
 
         function applyLanguage() {
             const lang = localStorage.getItem('appLang') || 'en';
+            const t = translations[lang];
             const enBtn = document.getElementById('en-btn');
             const bnBtn = document.getElementById('bn-btn');
             
@@ -95,20 +134,24 @@
             if(lang === 'bn') {
                 bnBtn.classList.add('active');
                 enBtn.classList.remove('active');
-                // টেক্সট পরিবর্তন
-                document.getElementById('main-title').innerText = "সেটিংস";
-                document.getElementById('group-title').innerText = "গ্রুপসমূহ";
-                document.getElementById('customer-title').innerText = "কাস্টমার";
-                document.getElementById('med-title').innerText = "মেডিসিন";
-                document.getElementById('saveCustBtn').innerText = "কাস্টমার সেভ করুন";
-                document.getElementById('saveMedBtn').innerText = "মেডিসিন সেভ করুন";
-                document.getElementById('show-text').innerText = "দেখান ও ডিলিট করুন";
-                document.getElementById('addGroupBtn').innerText = "যোগ";
             } else {
                 enBtn.classList.add('active');
                 bnBtn.classList.remove('active');
-                // ডিফল্ট ইংরেজি টেক্সট (যা আগে ছিল)
             }
+
+            // টেক্সট পরিবর্তন
+            document.getElementById('main-title').innerText = t.mainTitle;
+            document.getElementById('lang-title').innerText = t.langTitle;
+            document.getElementById('group-title').innerText = t.groupTitle;
+            document.getElementById('customer-title').innerText = t.custTitle;
+            document.getElementById('med-title').innerText = t.medTitle;
+            document.getElementById('addGroupBtn').innerText = t.addBtn;
+            document.getElementById('saveCustBtn').innerText = t.saveCust;
+            document.getElementById('saveMedBtn').innerText = t.saveMed;
+            document.getElementById('show-text').innerText = t.showDel;
+            document.getElementById('cGroupSelect').options[0].text = t.selGrp;
+            document.getElementById('cInputBulk').placeholder = t.custPl;
+            document.getElementById('mInputBulk').placeholder = t.medPl;
         }
         applyLanguage();
 
@@ -121,6 +164,7 @@
         });
 
         function renderSettingsUI() {
+            const lang = localStorage.getItem('appLang') || 'en';
             // Render Groups
             document.getElementById('gList').innerHTML = (masterData.groups || []).map(g => `
                 <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">
@@ -129,7 +173,8 @@
             `).join('');
 
             // Update Dropdowns
-            document.getElementById('cGroupSelect').innerHTML = '<option value="">Select Group</option>' + 
+            const selectTop = lang === 'bn' ? "গ্রুপ সিলেক্ট করুন" : "Select Group";
+            document.getElementById('cGroupSelect').innerHTML = `<option value="">${selectTop}</option>` + 
                 (masterData.groups || []).map(g => `<option value="${g}">${g}</option>`).join('');
             
             document.getElementById('cSettingsGroupButtons').innerHTML = (masterData.groups || []).map(g => `
@@ -165,6 +210,7 @@
 
         // Add Customers
         document.getElementById('saveCustBtn').onclick = async () => {
+            const lang = localStorage.getItem('appLang') || 'en';
             const grp = document.getElementById('cGroupSelect').value;
             const txt = document.getElementById('cInputBulk').value;
             const names = txt.split(/[,\n]/).map(n => n.trim().toUpperCase()).filter(n => n);
@@ -173,15 +219,16 @@
                 const newCusts = names.map(n => ({ name: n, group: grp }));
                 await updateDoc(DOC_REF, { customers: arrayUnion(...newCusts) });
                 document.getElementById('cInputBulk').value = '';
-                alert("Customers Added!");
+                alert(translations[lang].custAdded);
             } else {
-                alert("Select Group and Enter Names");
+                alert(lang === 'bn' ? "গ্রুপ সিলেক্ট করুন এবং নাম লিখুন" : "Select Group and Enter Names");
             }
         };
 
         // Helper functions attached to window
         window.removeMasterItem = async (key, val) => {
-            if (confirm(`Delete ${val}?`)) {
+            const lang = localStorage.getItem('appLang') || 'en';
+            if (confirm(translations[lang].delConfirm + ` (${val})`)) {
                 await updateDoc(DOC_REF, { [key]: arrayRemove(val) });
             }
         };
@@ -197,7 +244,8 @@
         };
 
         window.deleteCustomer = async (n, g) => {
-            if (confirm("Delete Customer?")) {
+            const lang = localStorage.getItem('appLang') || 'en';
+            if (confirm(translations[lang].delConfirm)) {
                 const updatedList = masterData.customers.filter(c => !(c.name === n && c.group === g));
                 await updateDoc(DOC_REF, { customers: updatedList });
                 window.viewCustomersByGroup(g); // Refresh list

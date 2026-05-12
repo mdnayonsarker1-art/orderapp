@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>মেডিসিন স্টোর</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="px-6 pt-8 max-w-md mx-auto">
+    <div class="flex items-center gap-4 mb-6">
+        <a href="index.html" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-600"><i class="fa-solid fa-chevron-left"></i></a>
+        <h1 class="text-2xl font-black text-slate-800 uppercase italic">Stock Store</h1>
+    </div>
+    <div class="setup-card !p-4 bg-emerald-50/50 border-none mb-6">
+        <div class="grid grid-cols-2 gap-2 mb-2">
+            <input type="date" id="storeFromDate" class="large-input !p-3 !text-xs !mb-0">
+            <input type="date" id="storeToDate" class="large-input !p-3 !text-xs !mb-0">
+        </div>
+        <button id="filterBtn" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-black uppercase text-[10px]">ফিল্টার স্টক</button>
+    </div>
+    <input type="text" id="storeSearch" placeholder="মেডিসিন খুঁজুন..." class="large-input shadow-sm">
+    <div class="store-table-container"><table class="order-table"><thead><tr><th width="70%">Medicine</th><th width="30%">Qty</th></tr></thead><tbody id="store-table-body"></tbody></table></div>
+    <script type="module">
+        import { db, today } from './config.js';
+        import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        document.getElementById('storeFromDate').value = today;
+        document.getElementById('storeToDate').value = today;
+        async function loadStock() {
+            const from = document.getElementById('storeFromDate').value, to = document.getElementById('storeToDate').value;
+            const snap = await getDocs(query(collection(db, "orders"), where("date", ">=", from), where("date", "<=", to)));
+            let stock = {};
+            snap.forEach(d => d.data().items.forEach(it => { stock[it.product] = (stock[it.product] || 0) + parseInt(it.qty); }));
+            const render = (search = '') => {
+                const names = Object.keys(stock).filter(n => n.includes(search.toUpperCase())).sort();
+                document.getElementById('store-table-body').innerHTML = names.map(n => `<tr><td class="font-bold uppercase">${n}</td><td class="text-center"><span class="qty-badge">${stock[n]}</span></td></tr>`).join('');
+            };
+            render();
+            document.getElementById('storeSearch').oninput = (e) => render(e.target.value);
+        }
+        document.getElementById('filterBtn').onclick = loadStock;
+        loadStock();
+    </script>
+</body>
+          </html>

@@ -2,18 +2,43 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#1e1b4b">
-    <title>Sharif Pharma - Digital Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sharif Pharma - Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="max-w-md mx-auto pb-24" id="app-content">
+    <div class="max-w-md mx-auto">
+        <div class="glass-header mb-8 text-center relative">
+            <a href="settings.html" class="absolute top-6 right-6 bg-white/10 p-3 rounded-2xl text-white"><i class="fa-solid fa-sliders"></i></a>
+            <h1 class="text-3xl font-black text-white uppercase italic">SHARIF PHARMA</h1>
+            <p class="text-indigo-200 text-[10px] font-bold tracking-widest uppercase opacity-80">Inventory Manager</p>
         </div>
-    <datalist id="med-list-data"></datalist>
-    <script type="module" src="app.js"></script>
+        <div class="px-6 space-y-4">
+            <a href="store.html" class="w-full bg-emerald-600 text-white p-6 rounded-[2.5rem] flex items-center justify-between shadow-xl">
+                <div class="flex items-center gap-4"><div class="bg-white/20 p-3 rounded-2xl"><i class="fa-solid fa-warehouse"></i></div><p class="font-black italic uppercase">মেডিসিন স্টোর</p></div>
+                <i class="fa-solid fa-chevron-right opacity-50"></i>
+            </a>
+            <div id="main-group-list" class="grid grid-cols-2 gap-4"></div>
+            <a href="history.html" class="w-full bg-slate-900 text-white p-6 rounded-[2.5rem] flex items-center justify-between shadow-2xl">
+                <div class="flex items-center gap-4"><div class="bg-indigo-500 p-3 rounded-2xl"><i class="fa-solid fa-file-invoice"></i></div><p class="font-black italic uppercase">অর্ডার রিপোর্ট</p></div>
+                <i class="fa-solid fa-chevron-right text-slate-500"></i>
+            </a>
+        </div>
+    </div>
+    <script type="module">
+        import { DOC_REF } from './config.js';
+        import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        onSnapshot(DOC_REF, (snap) => {
+            const groups = snap.data()?.groups || [];
+            document.getElementById('main-group-list').innerHTML = groups.map(g => `
+                <a href="order.html?group=${g}" class="bg-white p-6 rounded-[2rem] border shadow-sm text-center">
+                    <i class="fa-solid fa-folder text-indigo-500 text-3xl mb-3"></i>
+                    <div class="font-black text-slate-700 text-[11px] uppercase">${g}</div>
+                </a>
+            `).join('');
+        });
+    </script>
 </body>
 </html>

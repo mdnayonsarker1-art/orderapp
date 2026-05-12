@@ -8,16 +8,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .selected-card { border: 3px solid #4f46e5 !important; background: #eef2ff !important; }
+        .strike-text { text-decoration: line-through; text-decoration-color: red; text-decoration-thickness: 2px; color: #94a3b8 !important; }
+        .item-checkbox { width: 18px; height: 18px; accent-color: #4f46e5; }
+        .invoice-break { page-break-after: always; border-bottom: 2px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; font-family: sans-serif; }
+    </style>
 </head>
 <body class="px-6 pt-8 max-w-md mx-auto pb-10">
     
-    <!-- History Search Section -->
     <div id="history-view">
-        <div class="flex items-center gap-4 mb-6">
-            <a href="index.html" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-600">
-                <i class="fa-solid fa-chevron-left"></i>
-            </a>
-            <h1 class="text-2xl font-black text-slate-800 uppercase italic">History</h1>
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-4">
+                <a href="index.html" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-600">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
+                <h1 class="text-2xl font-black text-slate-800 uppercase italic">History</h1>
+            </div>
+            <button id="allSelectBtn" class="hidden text-[10px] font-bold bg-slate-200 px-4 py-2 rounded-xl uppercase">All Select</button>
         </div>
 
         <div class="setup-card !p-4 bg-indigo-50/50 border-none">
@@ -35,18 +43,24 @@
             <button id="searchHistoryBtn" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-xs">সার্চ রিপোর্ট</button>
         </div>
 
+        <div id="multiSelectActions" class="hidden mt-4">
+            <button id="downloadMultiPdfBtn" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-sm">
+                <i class="fa-solid fa-file-pdf mr-2"></i> সিলেক্টেড ইনভয়েস PDF
+            </button>
+        </div>
+
         <div id="history-data" class="space-y-4 mt-6"></div>
     </div>
 
-    <!-- Detail & Invoice Section -->
     <div id="detail-view" class="hidden">
         <div class="flex justify-between items-center mb-6">
             <button onclick="location.reload()" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-900">
                 <i class="fa-solid fa-arrow-left"></i>
             </button>
-            <button id="downloadPdfBtn" class="bg-emerald-600 text-white px-6 py-4 rounded-2xl text-sm font-black uppercase shadow-lg">
-                <i class="fa-solid fa-file-pdf mr-2"></i> PDF
-            </button>
+            <div class="flex gap-2">
+                <button id="markDoneBtn" class="bg-indigo-600 text-white px-4 py-4 rounded-2xl text-[10px] font-black uppercase shadow-lg">ডান (Done)</button>
+                <button id="downloadPdfBtn" class="bg-emerald-600 text-white px-4 py-4 rounded-2xl text-[10px] font-black uppercase shadow-lg">PDF</button>
+            </div>
         </div>
 
         <div id="invoice-print" class="bg-white p-6 rounded-[2.5rem] border shadow-xl mb-6">
@@ -55,12 +69,12 @@
                 <p id="inv-date" class="text-[9px] font-bold text-slate-400 uppercase mt-1"></p>
             </div>
             <p id="inv-chemist" class="text-xl font-black uppercase text-slate-800 italic mb-4"></p>
-            <table class="order-table">
+            <table class="w-full">
                 <thead>
-                    <tr>
-                        <th width="70%">Medicine</th>
-                        <th width="30%" class="text-center">Qty</th>
-                        <th class="no-pdf text-center">X</th>
+                    <tr class="text-left border-b">
+                        <th class="pb-2 text-[10px] uppercase text-slate-400">Medicine</th>
+                        <th class="pb-2 text-center text-[10px] uppercase text-slate-400">Qty</th>
+                        <th class="pb-2 text-center text-[10px] uppercase text-slate-400 no-pdf">Action</th>
                     </tr>
                 </thead>
                 <tbody id="inv-items-table-body"></tbody>
@@ -68,14 +82,20 @@
         </div>
     </div>
 
+    <div id="multi-invoice-container" class="hidden"></div>
+
     <script type="module">
         import { db, DOC_REF, today } from './config.js';
-        import { collection, getDocs, query, where, doc, deleteDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, getDocs, query, where, doc, deleteDoc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         document.getElementById('fromDate').value = today;
         document.getElementById('toDate').value = today;
 
-        // Load Groups for Filter
+        let selectedOrders = new Set();
+        let currentResults = [];
+        let currentOrderItems = [];
+        let currentOrderId = '';
+
         onSnapshot(DOC_REF, (snap) => {
             if(snap.exists()){
                 const groups = snap.data().groups || [];
@@ -84,47 +104,69 @@
             }
         });
 
-        // Search Logic
         document.getElementById('searchHistoryBtn').onclick = async () => {
             const from = document.getElementById('fromDate').value;
             const to = document.getElementById('toDate').value;
             const grp = document.getElementById('searchGroupFilter').value;
             const container = document.getElementById('history-data');
             
-            if(!from || !to) return alert("Select Date");
-            container.innerHTML = '<p class="text-center font-bold">সার্চ হচ্ছে...</p>';
+            selectedOrders.clear();
+            updateUI();
 
+            container.innerHTML = '<p class="text-center font-bold">সার্চ হচ্ছে...</p>';
             const q = query(collection(db, "orders"), where("date", ">=", from), where("date", "<=", to));
             const snap = await getDocs(q);
-            let results = [];
+            currentResults = [];
             snap.forEach(d => {
                 const data = d.data();
-                if(grp === "ALL" || data.group === grp) results.push({id: d.id, ...data});
+                if(grp === "ALL" || data.group === grp) currentResults.push({id: d.id, ...data});
             });
-            
-            results.sort((a,b) => b.timestamp - a.timestamp);
+            currentResults.sort((a,b) => b.timestamp - a.timestamp);
 
-            if(results.length === 0) {
+            if(currentResults.length === 0) {
                 container.innerHTML = '<p class="text-center text-slate-400">কোন ডাটা পাওয়া যায়নি</p>';
+                document.getElementById('allSelectBtn').classList.add('hidden');
                 return;
             }
-
-            container.innerHTML = results.map(d => `
-                <div class="setup-card flex justify-between items-center !p-4 border-l-8 border-indigo-600">
-                    <div onclick="window.openDetail('${d.id}')" class="flex-1 cursor-pointer">
-                        <p class="font-black text-slate-800 uppercase italic">${d.chemist}</p>
-                        <p class="text-[9px] font-bold text-slate-400 uppercase">${d.group} • ${d.date}</p>
-                    </div>
-                    <button onclick="window.deleteReport('${d.id}')" class="p-3 text-red-400">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                </div>
-            `).join('');
+            document.getElementById('allSelectBtn').classList.remove('hidden');
+            renderList();
         };
 
-        // Open Detail View
-        let currentOrderItems = [];
-        let currentOrderId = '';
+        function renderList() {
+            document.getElementById('history-data').innerHTML = currentResults.map(d => `
+                <div onclick="window.toggleSelect('${d.id}')" class="setup-card flex justify-between items-center !p-4 border-l-8 border-indigo-600 ${selectedOrders.has(d.id) ? 'selected-card' : ''}">
+                    <div class="flex-1 cursor-pointer">
+                        <p class="font-black text-slate-800 uppercase italic text-sm">${d.chemist}</p>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase">${d.group} • ${d.date}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="event.stopPropagation(); window.openDetail('${d.id}')" class="p-2 text-indigo-600"><i class="fa-solid fa-eye"></i></button>
+                        <button onclick="event.stopPropagation(); window.deleteReport('${d.id}')" class="p-2 text-red-400"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.toggleSelect = (id) => {
+            if(selectedOrders.has(id)) selectedOrders.delete(id);
+            else selectedOrders.add(id);
+            updateUI();
+            renderList();
+        };
+
+        function updateUI() {
+            const actionBox = document.getElementById('multiSelectActions');
+            if(selectedOrders.size > 0) actionBox.classList.remove('hidden');
+            else actionBox.classList.add('hidden');
+            document.getElementById('allSelectBtn').innerText = selectedOrders.size === currentResults.length ? "Deselect All" : "All Select";
+        }
+
+        document.getElementById('allSelectBtn').onclick = () => {
+            if(selectedOrders.size === currentResults.length) selectedOrders.clear();
+            else currentResults.forEach(r => selectedOrders.add(r.id));
+            updateUI();
+            renderList();
+        };
 
         window.openDetail = (id) => {
             currentOrderId = id;
@@ -132,28 +174,53 @@
                 if(!snap.exists()) return;
                 const data = snap.data();
                 currentOrderItems = data.items || [];
+                const struckItems = data.struckItems || [];
                 
                 document.getElementById('history-view').classList.add('hidden');
                 document.getElementById('detail-view').classList.remove('hidden');
-                
                 document.getElementById('inv-date').innerText = data.date;
                 document.getElementById('inv-chemist').innerText = data.chemist;
                 
-                document.getElementById('inv-items-table-body').innerHTML = currentOrderItems.map((it, i) => `
-                    <tr>
-                        <td class="uppercase text-[12px]">${it.product}</td>
-                        <td class="text-center font-black text-indigo-600">x${it.qty}</td>
-                        <td class="no-pdf text-center">
-                            <button onclick="window.deleteItemFromOrder(${i})" class="text-red-300">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
+                document.getElementById('inv-items-table-body').innerHTML = currentOrderItems.map((it, i) => {
+                    const isStruck = struckItems.includes(i);
+                    return `
+                    <tr class="border-b">
+                        <td class="py-4 uppercase text-[12px] font-bold ${isStruck ? 'strike-text' : ''}">${it.product}</td>
+                        <td class="py-4 text-center font-black text-indigo-600 ${isStruck ? 'strike-text' : ''}">x${it.qty}</td>
+                        <td class="py-4 no-pdf">
+                            <div class="flex items-center justify-center gap-2">
+                                <input type="checkbox" class="item-checkbox" data-index="${i}" ${isStruck ? 'checked disabled' : ''}>
+                                <button onclick="window.editItem(${i})" class="text-indigo-400 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button onclick="window.deleteItemFromOrder(${i})" class="text-red-300 p-1"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
                         </td>
-                    </tr>
-                `).join('');
+                    </tr>`;
+                }).join('');
             });
         };
 
-        // Delete Full Report
+        window.editItem = (index) => {
+            const item = currentOrderItems[index];
+            const newName = prompt("মেডিসিনের নতুন নাম:", item.product);
+            const newQty = prompt("নতুন পরিমাণ:", item.qty);
+            if (newName && newQty) {
+                const updatedItems = [...currentOrderItems];
+                updatedItems[index] = { product: newName.toUpperCase().trim(), qty: newQty.trim() };
+                updateDoc(doc(db, "orders", currentOrderId), { items: updatedItems });
+            }
+        };
+
+        document.getElementById('markDoneBtn').onclick = async () => {
+            const checkboxes = document.querySelectorAll('.item-checkbox:checked:not(:disabled)');
+            if(checkboxes.length === 0) return alert("মেডিসিন সিলেক্ট করুন!");
+            if(confirm("সিলেক্ট করা মেডিসিনগুলো কেটে দিতে চান?")) {
+                const orderSnap = await getDoc(doc(db, "orders", currentOrderId));
+                let currentStruck = orderSnap.data().struckItems || [];
+                checkboxes.forEach(cb => currentStruck.push(parseInt(cb.dataset.index)));
+                await updateDoc(doc(db, "orders", currentOrderId), { struckItems: currentStruck });
+            }
+        };
+
         window.deleteReport = async (id) => {
             if(confirm("পুরো রিপোর্টটি ডিলিট করতে চান?")) {
                 await deleteDoc(doc(db, "orders", id));
@@ -161,7 +228,6 @@
             }
         };
 
-        // Delete Single Item from Order
         window.deleteItemFromOrder = async (index) => {
             if(confirm("এই আইটেমটি ডিলিট করবেন?")) {
                 const newItems = currentOrderItems.filter((_, i) => i !== index);
@@ -169,26 +235,46 @@
             }
         };
 
-        // PDF Download
         document.getElementById('downloadPdfBtn').onclick = () => {
             const el = document.getElementById('invoice-print');
             const noPdfElements = document.querySelectorAll('.no-pdf');
-            
             noPdfElements.forEach(el => el.style.display = 'none');
-            
-            const opt = {
-                margin: 10,
-                filename: `Order_${document.getElementById('inv-chemist').innerText}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 3 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(el).save().then(() => {
+            html2pdf().set({ margin: 10, filename: `Order_${document.getElementById('inv-chemist').innerText}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 3 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(el).save().then(() => {
                 noPdfElements.forEach(el => el.style.display = 'table-cell');
             });
         };
 
+        document.getElementById('downloadMultiPdfBtn').onclick = async () => {
+            const container = document.getElementById('multi-invoice-container');
+            container.innerHTML = '';
+            container.classList.remove('hidden');
+            const selectedData = currentResults.filter(r => selectedOrders.has(r.id));
+            
+            selectedData.forEach((order) => {
+                const struckItems = order.struckItems || [];
+                container.innerHTML += `
+                    <div class="invoice-break">
+                        <div style="text-align: center; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; margin-bottom: 15px;">
+                            <h2 style="margin:0; font-size: 24px; color: #4f46e5;">SHARIF PHARMA</h2>
+                            <p style="margin:0; font-size: 10px; color: #666; text-transform: uppercase;">Date: ${order.date} | Group: ${order.group}</p>
+                        </div>
+                        <h3 style="text-transform: uppercase; margin-bottom: 15px;">Chemist: ${order.chemist}</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead><tr style="background: #f3f4f6;"><th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Medicine</th><th style="text-align: center; padding: 8px; border: 1px solid #ddd;">Qty</th></tr></thead>
+                            <tbody>
+                                ${order.items.map((it, idx) => `
+                                    <tr>
+                                        <td style="padding: 8px; border: 1px solid #ddd; text-transform: uppercase; ${struckItems.includes(idx) ? 'text-decoration: line-through; color: #999;' : ''}">${it.product}</td>
+                                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; ${struckItems.includes(idx) ? 'text-decoration: line-through; color: #999;' : ''}">${it.qty}</td>
+                                    </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>`;
+            });
+
+            await html2pdf().set({ margin: 10, filename: `Combined_Orders.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(container).save();
+            container.classList.add('hidden');
+        };
     </script>
 </body>
 </html>

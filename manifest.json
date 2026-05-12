@@ -1,0 +1,17 @@
+{
+  "name": "Sharif Pharma",
+  "short_name": "S-Pharma",
+  "description": "Inventory and Order Management System",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#4f46e5",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3022/3022202.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

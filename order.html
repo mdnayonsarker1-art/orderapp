@@ -3,30 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>অর্ডার ফর্ম</title>
+    <title>অর্ডার ফর্ম - শরীফ ফার্মা</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="px-6 pt-8 max-w-md mx-auto">
+<body class="px-6 pt-8 max-w-md mx-auto pb-10">
+
     <div id="chemist-view">
         <div class="flex items-center gap-4 mb-6">
-            <a href="index.html" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-900"><i class="fa-solid fa-chevron-left"></i></a>
+            <a href="index.html" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-900">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
             <h1 id="group-title" class="text-xl font-black text-slate-800 uppercase italic">Chemist</h1>
         </div>
-        <input type="text" id="custSearch" placeholder="সার্চ করুন..." class="large-input shadow-sm">
+        
+        <div class="relative mb-6">
+            <input type="text" id="custSearch" placeholder="সার্চ করুন..." class="large-input shadow-sm !mb-0">
+            <i class="fa-solid fa-magnifying-glass absolute right-5 top-5 text-slate-300"></i>
+        </div>
+
         <div id="chemist-list" class="space-y-3"></div>
     </div>
 
     <div id="form-view" class="hidden">
-        <button onclick="location.reload()" class="font-bold text-indigo-600 mb-6 flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm"><i class="fa-solid fa-arrow-left"></i> ব্যাক</button>
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="window.goBackToChemist()" class="font-bold text-indigo-600 flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border">
+                <i class="fa-solid fa-arrow-left"></i> ব্যাক
+            </button>
+            <input type="date" id="orderDate" class="p-2 rounded-xl border font-bold text-slate-600 text-xs shadow-sm">
+        </div>
+
         <div class="setup-card border-t-8 border-indigo-600">
             <h2 id="selected-chemist-name" class="text-2xl font-black text-slate-800 uppercase italic mb-6 text-center"></h2>
             <input type="text" id="product-name" list="med-list-data" placeholder="মেডিসিনের নাম..." class="large-input">
             <input type="number" id="quantity" placeholder="পরিমাণ" class="large-input">
             <button id="addToCartBtn" class="save-btn bg-indigo-600">অ্যাড করুন</button>
         </div>
-        <div class="setup-card p-0 overflow-hidden"><table class="w-full"><tbody id="cart-items" class="divide-y divide-slate-100"></tbody></table></div>
+
+        <div class="setup-card p-0 overflow-hidden">
+            <table class="w-full">
+                <tbody id="cart-items" class="divide-y divide-slate-100"></tbody>
+            </table>
+        </div>
+
         <button id="saveOrderBtn" class="w-full mt-4 bg-emerald-600 text-white py-6 rounded-3xl font-black text-xl shadow-2xl uppercase">অর্ডার সেভ করুন</button>
     </div>
 
@@ -34,32 +54,79 @@
 
     <script type="module">
         import { db, DOC_REF, today } from './config.js';
-        import { onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { onSnapshot, collection, addDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const params = new URLSearchParams(window.location.search);
-        const currentGroup = params.get('group');
+        const currentGroup = params.get('group') || "No Group";
         let cart = [], currentChemist = '', masterData = {};
 
+        document.getElementById('orderDate').value = today;
         document.getElementById('group-title').innerText = currentGroup;
 
         onSnapshot(DOC_REF, (snap) => {
-            masterData = snap.data();
-            const filtered = (masterData.customers || []).filter(c => c.group === currentGroup);
-            renderChemists(filtered);
-            document.getElementById('med-list-data').innerHTML = (masterData.medicines || []).map(m => `<option value="${m}">`).join('');
+            if(snap.exists()) {
+                masterData = snap.data();
+                const filtered = (masterData.customers || []).filter(c => c.group === currentGroup);
+                
+                renderChemists(filtered);
+
+                document.getElementById('custSearch').oninput = (e) => {
+                    const search = e.target.value.toUpperCase();
+                    const matched = filtered.filter(c => c.name.includes(search));
+                    renderChemists(matched, search);
+                };
+                
+                document.getElementById('med-list-data').innerHTML = (masterData.medicines || []).map(m => `<option value="${m}">`).join('');
+            }
         });
 
-        function renderChemists(list) {
-            document.getElementById('chemist-list').innerHTML = list.map(c => `
-                <button onclick="window.openForm('${c.name}')" class="w-full text-left p-6 bg-white border rounded-[2rem] font-black text-slate-700 shadow-sm uppercase italic">${c.name}</button>
-            `).join('');
+        function renderChemists(list, searchText = '') {
+            const container = document.getElementById('chemist-list');
+            if (list.length === 0 && searchText.length > 0) {
+                container.innerHTML = `
+                    <div class="p-8 bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-[2.5rem] text-center">
+                        <p class="text-slate-500 font-bold mb-4 uppercase text-[10px] tracking-widest italic">"${searchText}" নামে কেউ নেই</p>
+                        <button onclick="window.addNewChemist('${searchText}')" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg uppercase active:scale-95 transition-transform">
+                            <i class="fa-solid fa-user-plus mr-2"></i> New Add: ${searchText}
+                        </button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = list.map(c => `
+                    <button onclick="window.openForm('${c.name}')" class="w-full text-left p-6 bg-white border rounded-[2rem] font-black text-slate-700 shadow-sm uppercase italic active:bg-indigo-50 transition-colors">
+                        ${c.name}
+                    </button>
+                `).join('');
+            }
         }
+
+        window.addNewChemist = async (name) => {
+            const cleanName = name.toUpperCase().trim();
+            if(confirm(`"${cleanName}" কে কি এই গ্রুপে অ্যাড করবেন?`)) {
+                try {
+                    await updateDoc(DOC_REF, {
+                        customers: arrayUnion({ name: cleanName, group: currentGroup })
+                    });
+                    window.openForm(cleanName);
+                } catch (e) {
+                    alert("Error: " + e.message);
+                }
+            }
+        };
 
         window.openForm = (name) => {
             currentChemist = name;
+            cart = [];
+            renderCart();
             document.getElementById('chemist-view').classList.add('hidden');
             document.getElementById('form-view').classList.remove('hidden');
             document.getElementById('selected-chemist-name').innerText = name;
+            document.getElementById('custSearch').value = '';
+        };
+
+        window.goBackToChemist = () => {
+            document.getElementById('form-view').classList.add('hidden');
+            document.getElementById('chemist-view').classList.remove('hidden');
         };
 
         document.getElementById('addToCartBtn').onclick = () => {
@@ -70,15 +137,16 @@
                 renderCart();
                 document.getElementById('product-name').value = '';
                 document.getElementById('quantity').value = '';
+                document.getElementById('product-name').focus();
             }
         };
 
         function renderCart() {
             document.getElementById('cart-items').innerHTML = cart.map((item, i) => `
                 <tr class="flex justify-between items-center p-5">
-                    <td class="font-bold uppercase">${item.product}</td>
+                    <td class="font-bold uppercase text-sm">${item.product}</td>
                     <td class="font-black text-indigo-600">x${item.qty}</td>
-                    <td><button onclick="window.removeCartItem(${i})" class="text-red-400">✕</button></td>
+                    <td><button onclick="window.removeCartItem(${i})" class="text-red-400 p-2 text-xl">✕</button></td>
                 </tr>
             `).join('');
         }
@@ -86,12 +154,19 @@
         window.removeCartItem = (i) => { cart.splice(i,1); renderCart(); };
 
         document.getElementById('saveOrderBtn').onclick = async () => {
-            if(!cart.length) return;
+            if(!cart.length) return alert("কার্ট খালি!");
+            const selectedDate = document.getElementById('orderDate').value;
+            
             await addDoc(collection(db, "orders"), {
-                group: currentGroup, chemist: currentChemist, items: cart, date: today, timestamp: new Date().getTime()
+                group: currentGroup, 
+                chemist: currentChemist, 
+                items: cart, 
+                date: selectedDate,
+                timestamp: new Date().getTime()
             });
-            alert("Order Saved!");
-            location.href = "index.html";
+            
+            alert("অর্ডার সেভ হয়েছে!");
+            window.goBackToChemist(); // সেভ হওয়ার পর ব্যাকে নিয়ে যাবে
         };
     </script>
 </body>

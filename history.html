@@ -3,23 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>অর্ডার রিপোর্ট - Sharif Pharma</title>
+    <title>Order Report - Sharif Pharma</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        .selected-card { 
-            background: #e0e7ff !important; 
-            border: 2px solid #4f46e5 !important;
-            transform: scale(0.98);
-        }
-        .strike-text { 
-            text-decoration: line-through; 
-            text-decoration-color: red; 
-            text-decoration-thickness: 2px; 
-            color: #94a3b8 !important; 
-        }
+        .selected-card { background: #e0e7ff !important; border: 2px solid #4f46e5 !important; transform: scale(0.98); }
+        .strike-text { text-decoration: line-through; text-decoration-color: red; text-decoration-thickness: 2px; color: #94a3b8 !important; }
         .item-checkbox { width: 18px; height: 18px; accent-color: #4f46e5; }
         .invoice-break { page-break-after: always; border-bottom: 2px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; font-family: sans-serif; }
     </style>
@@ -32,7 +23,7 @@
                 <a href="index.html" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-600">
                     <i class="fa-solid fa-chevron-left"></i>
                 </a>
-                <h1 class="text-2xl font-black text-slate-800 uppercase italic">History</h1>
+                <h1 id="page-title" class="text-2xl font-black text-slate-800 uppercase italic">History</h1>
             </div>
             <button id="allSelectBtn" class="hidden text-[10px] font-bold bg-slate-200 px-4 py-2 rounded-xl uppercase">All Select</button>
         </div>
@@ -40,21 +31,21 @@
         <div class="setup-card !p-4 bg-indigo-50/50 border-none">
             <div class="grid grid-cols-2 gap-2 mb-2">
                 <div>
-                    <label class="text-[9px] font-bold text-slate-400 ml-2 uppercase">From</label>
+                    <label id="lbl-from" class="text-[9px] font-bold text-slate-400 ml-2 uppercase">From</label>
                     <input type="date" id="fromDate" class="large-input !p-3 !text-xs !mb-0">
                 </div>
                 <div>
-                    <label class="text-[9px] font-bold text-slate-400 ml-2 uppercase">To</label>
+                    <label id="lbl-to" class="text-[9px] font-bold text-slate-400 ml-2 uppercase">To</label>
                     <input type="date" id="toDate" class="large-input !p-3 !text-xs !mb-0">
                 </div>
             </div>
             <select id="searchGroupFilter" class="large-input !text-sm !mb-2 !p-4"></select>
-            <button id="searchHistoryBtn" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-xs">সার্চ রিপোর্ট</button>
+            <button id="searchHistoryBtn" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-xs">Search Report</button>
         </div>
 
         <div id="multiSelectActions" class="hidden mt-4">
             <button id="downloadMultiPdfBtn" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-sm">
-                <i class="fa-solid fa-file-pdf mr-2"></i> সিলেক্টেড PDF ডাউনলোড
+                <i class="fa-solid fa-file-pdf mr-2"></i> <span id="multi-pdf-text">Download Selected PDF</span>
             </button>
         </div>
 
@@ -67,7 +58,7 @@
                 <i class="fa-solid fa-arrow-left"></i>
             </button>
             <div class="flex gap-2">
-                <button id="markDoneBtn" class="bg-indigo-600 text-white px-4 py-4 rounded-2xl text-[10px] font-black uppercase shadow-lg">ডান (Done)</button>
+                <button id="markDoneBtn" class="bg-indigo-600 text-white px-4 py-4 rounded-2xl text-[10px] font-black uppercase shadow-lg">Done</button>
                 <button id="downloadPdfBtn" class="bg-emerald-600 text-white px-4 py-4 rounded-2xl text-[10px] font-black uppercase shadow-lg">PDF</button>
             </div>
         </div>
@@ -81,9 +72,9 @@
             <table class="w-full">
                 <thead>
                     <tr class="text-left border-b">
-                        <th class="pb-2 text-[10px] uppercase text-slate-400">Medicine</th>
-                        <th class="pb-2 text-center text-[10px] uppercase text-slate-400">Qty</th>
-                        <th class="pb-2 text-center text-[10px] uppercase text-slate-400 no-pdf">Action</th>
+                        <th id="th-med" class="pb-2 text-[10px] uppercase text-slate-400">Medicine</th>
+                        <th id="th-qty" class="pb-2 text-center text-[10px] uppercase text-slate-400">Qty</th>
+                        <th id="th-act" class="pb-2 text-center text-[10px] uppercase text-slate-400 no-pdf">Action</th>
                     </tr>
                 </thead>
                 <tbody id="inv-items-table-body"></tbody>
@@ -97,6 +88,63 @@
         import { db, DOC_REF, today } from './config.js';
         import { collection, getDocs, query, where, doc, deleteDoc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // --- ল্যাঙ্গুয়েজ সিস্টেম ---
+        const translations = {
+            en: {
+                title: "History",
+                from: "From",
+                to: "To",
+                searchBtn: "Search Report",
+                multiPdf: "Download Selected PDF",
+                done: "Done",
+                thMed: "Medicine",
+                thQty: "Qty",
+                thAct: "Action",
+                allSelect: "All Select",
+                deselectAll: "Deselect All",
+                searching: "Searching...",
+                noData: "No data found",
+                delConfirm: "Delete this report?",
+                delItem: "Delete this item?",
+                doneConfirm: "Strike out selected items?"
+            },
+            bn: {
+                title: "হিস্টরি",
+                from: "শুরু",
+                to: "শেষ",
+                searchBtn: "সার্চ রিপোর্ট",
+                multiPdf: "সিলেক্টেড PDF ডাউনলোড",
+                done: "ডান (Done)",
+                thMed: "মেডিসিন",
+                thQty: "পরিমাণ",
+                thAct: "অ্যাকশন",
+                allSelect: "সব সিলেক্ট",
+                deselectAll: "সিলেক্ট বাদ দিন",
+                searching: "সার্চ হচ্ছে...",
+                noData: "কোন ডাটা পাওয়া যায়নি",
+                delConfirm: "পুরো রিপোর্টটি ডিলিট করতে চান?",
+                delItem: "এই আইটেমটি ডিলিট করবেন?",
+                doneConfirm: "সিলেক্ট করা মেডিসিনগুলো কেটে দিতে চান?"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLang') || 'en';
+        const t = translations[currentLang];
+
+        function applyLanguage() {
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('lbl-from').innerText = t.from;
+            document.getElementById('lbl-to').innerText = t.to;
+            document.getElementById('searchHistoryBtn').innerText = t.searchBtn;
+            document.getElementById('multi-pdf-text').innerText = t.multiPdf;
+            document.getElementById('markDoneBtn').innerText = t.done;
+            document.getElementById('th-med').innerText = t.thMed;
+            document.getElementById('th-qty').innerText = t.thQty;
+            document.getElementById('th-act').innerText = t.thAct;
+        }
+        applyLanguage();
+
+        // --- Firebase ও অন্যান্য লজিক ---
         document.getElementById('fromDate').value = today;
         document.getElementById('toDate').value = today;
 
@@ -105,12 +153,12 @@
         let currentResults = [];
         let currentOrderItems = [];
         let currentOrderId = '';
-        let lastScrollPos = 0; // স্ক্রল পজিশন মনে রাখার জন্য ভেরিয়েবল
+        let lastScrollPos = 0;
 
         onSnapshot(DOC_REF, (snap) => {
             if(snap.exists()){
                 const groups = snap.data().groups || [];
-                document.getElementById('searchGroupFilter').innerHTML = '<option value="ALL">All Groups</option>' + 
+                document.getElementById('searchGroupFilter').innerHTML = `<option value="ALL">${currentLang === 'bn' ? 'সব গ্রুপ' : 'All Groups'}</option>` + 
                     groups.map(g => `<option value="${g}">${g}</option>`).join('');
             }
         });
@@ -125,7 +173,7 @@
             isSelectMode = false;
             updateUI();
 
-            container.innerHTML = '<p class="text-center font-bold">সার্চ হচ্ছে...</p>';
+            container.innerHTML = `<p class="text-center font-bold">${t.searching}</p>`;
             const q = query(collection(db, "orders"), where("date", ">=", from), where("date", "<=", to));
             const snap = await getDocs(q);
             currentResults = [];
@@ -136,7 +184,7 @@
             currentResults.sort((a,b) => b.timestamp - a.timestamp);
 
             if(currentResults.length === 0) {
-                container.innerHTML = '<p class="text-center text-slate-400">কোন ডাটা পাওয়া যায়নি</p>';
+                container.innerHTML = `<p class="text-center text-slate-400">${t.noData}</p>`;
                 document.getElementById('allSelectBtn').classList.add('hidden');
                 return;
             }
@@ -198,7 +246,7 @@
             const actionBox = document.getElementById('multiSelectActions');
             if(selectedOrders.size > 0) actionBox.classList.remove('hidden');
             else actionBox.classList.add('hidden');
-            document.getElementById('allSelectBtn').innerText = selectedOrders.size === currentResults.length ? "Deselect All" : "All Select";
+            document.getElementById('allSelectBtn').innerText = selectedOrders.size === currentResults.length ? t.deselectAll : t.allSelect;
         }
 
         document.getElementById('allSelectBtn').onclick = () => {
@@ -213,11 +261,8 @@
             renderList();
         };
 
-        // --- ভিউ কন্ট্রোল (স্ক্রল পজিশন ফিক্সড) ---
         window.openDetail = (id) => {
-            // ক্লিক করার আগে বর্তমান স্ক্রল পজিশন সেভ করে রাখা হচ্ছে
             lastScrollPos = window.scrollY; 
-            
             currentOrderId = id;
             onSnapshot(doc(db, "orders", id), (snap) => {
                 if(!snap.exists()) return;
@@ -227,8 +272,6 @@
                 
                 document.getElementById('history-view').classList.add('hidden');
                 document.getElementById('detail-view').classList.remove('hidden');
-                
-                // ডিটেইল পেজে গেলে একদম উপরে দেখাবে
                 window.scrollTo(0, 0); 
 
                 document.getElementById('inv-date').innerText = data.date;
@@ -255,18 +298,15 @@
         window.closeDetail = () => {
             document.getElementById('detail-view').classList.add('hidden');
             document.getElementById('history-view').classList.remove('hidden');
-            
-            // লিস্টে ফিরে আসার পর পেজটিকে আগের পজিশনে ফিরিয়ে নিয়ে যাওয়া হচ্ছে
-            setTimeout(() => {
-                window.scrollTo(0, lastScrollPos);
-            }, 10);
+            setTimeout(() => { window.scrollTo(0, lastScrollPos); }, 10);
         };
 
-        // এডিট, ডিলিট এবং PDF কোড আগের মতোই থাকবে...
         window.editItem = (index) => {
             const item = currentOrderItems[index];
-            const newName = prompt("মেডিসিনের নতুন নাম:", item.product);
-            const newQty = prompt("নতুন পরিমাণ:", item.qty);
+            const msgName = currentLang === 'bn' ? "মেডিসিনের নতুন নাম:" : "New Medicine Name:";
+            const msgQty = currentLang === 'bn' ? "নতুন পরিমাণ:" : "New Quantity:";
+            const newName = prompt(msgName, item.product);
+            const newQty = prompt(msgQty, item.qty);
             if (newName && newQty) {
                 const updatedItems = [...currentOrderItems];
                 updatedItems[index] = { product: newName.toUpperCase().trim(), qty: newQty.trim() };
@@ -276,8 +316,8 @@
 
         document.getElementById('markDoneBtn').onclick = async () => {
             const checkboxes = document.querySelectorAll('.item-checkbox:checked:not(:disabled)');
-            if(checkboxes.length === 0) return alert("মেডিসিন সিলেক্ট করুন!");
-            if(confirm("সিলেক্ট করা মেডিসিনগুলো কেটে দিতে চান?")) {
+            if(checkboxes.length === 0) return alert(currentLang === 'bn' ? "মেডিসিন সিলেক্ট করুন!" : "Select medicine first!");
+            if(confirm(t.doneConfirm)) {
                 const orderSnap = await getDoc(doc(db, "orders", currentOrderId));
                 let currentStruck = orderSnap.data().struckItems || [];
                 checkboxes.forEach(cb => currentStruck.push(parseInt(cb.dataset.index)));
@@ -286,14 +326,14 @@
         };
 
         window.deleteReport = async (id) => {
-            if(confirm("পুরো রিপোর্টটি ডিলিট করতে চান?")) {
+            if(confirm(t.delConfirm)) {
                 await deleteDoc(doc(db, "orders", id));
                 document.getElementById('searchHistoryBtn').click();
             }
         };
 
         window.deleteItemFromOrder = async (index) => {
-            if(confirm("এই আইটেমটি ডিলিট করবেন?")) {
+            if(confirm(t.delItem)) {
                 const newItems = currentOrderItems.filter((_, i) => i !== index);
                 await updateDoc(doc(db, "orders", currentOrderId), { items: newItems });
             }

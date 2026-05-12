@@ -13,23 +13,65 @@
         <div class="glass-header mb-8 text-center relative">
             <a href="settings.html" class="absolute top-6 right-6 bg-white/10 p-3 rounded-2xl text-white"><i class="fa-solid fa-sliders"></i></a>
             <h1 class="text-3xl font-black text-white uppercase italic">SHARIF PHARMA</h1>
-            <p class="text-indigo-200 text-[10px] font-bold tracking-widest uppercase opacity-80">Inventory Manager</p>
+            <p id="sub-title" class="text-indigo-200 text-[10px] font-bold tracking-widest uppercase opacity-80">Inventory Manager</p>
         </div>
+        
         <div class="px-6 space-y-4">
+            <!-- Medicine Store Button -->
             <a href="store.html" class="w-full bg-emerald-600 text-white p-6 rounded-[2.5rem] flex items-center justify-between shadow-xl">
-                <div class="flex items-center gap-4"><div class="bg-white/20 p-3 rounded-2xl"><i class="fa-solid fa-warehouse"></i></div><p class="font-black italic uppercase">মেডিসিন স্টোর</p></div>
+                <div class="flex items-center gap-4">
+                    <div class="bg-white/20 p-3 rounded-2xl"><i class="fa-solid fa-warehouse"></i></div>
+                    <p id="nav-store" class="font-black italic uppercase">Medicine Store</p>
+                </div>
                 <i class="fa-solid fa-chevron-right opacity-50"></i>
             </a>
+
+            <!-- Groups List -->
             <div id="main-group-list" class="grid grid-cols-2 gap-4"></div>
+
+            <!-- History Button -->
             <a href="history.html" class="w-full bg-slate-900 text-white p-6 rounded-[2.5rem] flex items-center justify-between shadow-2xl">
-                <div class="flex items-center gap-4"><div class="bg-indigo-500 p-3 rounded-2xl"><i class="fa-solid fa-file-invoice"></i></div><p class="font-black italic uppercase">অর্ডার রিপোর্ট</p></div>
+                <div class="flex items-center gap-4">
+                    <div class="bg-indigo-500 p-3 rounded-2xl"><i class="fa-solid fa-file-invoice"></i></div>
+                    <p id="nav-history" class="font-black italic uppercase">Order Report</p>
+                </div>
                 <i class="fa-solid fa-chevron-right text-slate-500"></i>
             </a>
         </div>
     </div>
+
     <script type="module">
         import { DOC_REF } from './config.js';
         import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- ল্যাঙ্গুয়েজ সিস্টেম ---
+        const translations = {
+            en: {
+                manager: "Inventory Manager",
+                store: "Medicine Store",
+                history: "Order Report"
+            },
+            bn: {
+                manager: "ইনভেন্টরি ম্যানেজার",
+                store: "মেডিসিন স্টোর",
+                history: "অর্ডার রিপোর্ট"
+            }
+        };
+
+        // বর্তমান ভাষা নির্বাচন
+        const currentLang = localStorage.getItem('appLang') || 'en';
+        const t = translations[currentLang];
+
+        // UI আপডেট ফাংশন
+        function applyLanguage() {
+            document.getElementById('sub-title').innerText = t.manager;
+            document.getElementById('nav-store').innerText = t.store;
+            document.getElementById('nav-history').innerText = t.history;
+        }
+        
+        applyLanguage();
+
+        // --- Firebase গ্রুপ লিস্ট রেন্ডারিং ---
         onSnapshot(DOC_REF, (snap) => {
             const groups = snap.data()?.groups || [];
             document.getElementById('main-group-list').innerHTML = groups.map(g => `

@@ -1,18 +1,145 @@
+/* Google Fonts Import */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
 
-body { background: #f0f2f5; font-family: 'Inter', sans-serif; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+/* Basic Resets & Background */
+body { 
+    background: #f8fafc; 
+    font-family: 'Inter', sans-serif; 
+    color: #1e293b; 
+    -webkit-tap-highlight-color: transparent; 
+    transition: background 0.3s ease;
+}
+
+/* Page Animation */
 .app-page { display: none; }
-.app-page.active { display: block; animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.app-page.active { 
+    display: block; 
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+}
 
-.glass-header { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 0 0 32px 32px; padding: 40px 20px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
-.setup-card { background: white; border-radius: 28px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); margin-bottom: 20px; border: 1px solid rgba(0,0,0,0.05); position: relative; overflow: hidden; }
-.card-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
-.large-input { width: 100%; padding: 18px; border: 2px solid #eef2f6; border-radius: 20px; margin-bottom: 12px; outline: none; font-size: 16px; font-weight: 600; background: #f8fafc; }
-.save-btn { width: 100%; padding: 18px; border-radius: 20px; color: white; font-weight: 900; text-transform: uppercase; font-size: 14px; cursor: pointer; border: none; transition: 0.2s; box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(10px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
 
-.order-table { width: 100%; border-collapse: collapse; }
-.order-table th { background: #f8fafc; color: #64748b; font-size: 11px; text-transform: uppercase; padding: 12px; text-align: left; border-bottom: 2px solid #edf2f7; }
-.order-table td { padding: 12px; font-size: 14px; border-bottom: 1px solid #f1f5f9; font-weight: 600; }
-.qty-badge { background: #eef2ff; color: #4f46e5; padding: 4px 12px; border-radius: 10px; font-weight: 800; }
+/* Modern Header Design */
+.glass-header { 
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); 
+    border-radius: 0 0 32px 32px; 
+    padding: 40px 24px; 
+    box-shadow: 0 15px 30px -10px rgba(49, 46, 129, 0.3); 
+    color: white;
+}
+
+/* Card Styling */
+.setup-card { 
+    background: white; 
+    border-radius: 28px; 
+    padding: 24px; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03); 
+    margin-bottom: 20px; 
+    border: 1px solid rgba(226, 232, 240, 0.8); 
+    position: relative; 
+    overflow: hidden; 
+}
+
+.card-accent { 
+    position: absolute; 
+    left: 0; top: 0; bottom: 0; 
+    width: 6px; 
+    background: #4f46e5;
+}
+
+/* Input Fields */
+.large-input { 
+    width: 100%; 
+    padding: 16px 20px; 
+    border: 2px solid #f1f5f9; 
+    border-radius: 18px; 
+    margin-bottom: 12px; 
+    outline: none; 
+    font-size: 15px; 
+    font-weight: 600; 
+    background: #f8fafc; 
+    transition: all 0.2s ease;
+}
+
+.large-input:focus {
+    border-color: #4f46e5;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+/* Buttons */
+.save-btn { 
+    width: 100%; 
+    padding: 18px; 
+    border-radius: 20px; 
+    color: white; 
+    font-weight: 900; 
+    text-transform: uppercase; 
+    font-size: 13px; 
+    cursor: pointer; 
+    border: none; 
+    transition: all 0.2s active; 
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1); 
+}
+
+.save-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Table Styling (History & Store) */
+.order-table { 
+    width: 100%; 
+    border-collapse: separate; 
+    border-spacing: 0;
+}
+
+.order-table th { 
+    background: #f8fafc; 
+    color: #64748b; 
+    font-size: 10px; 
+    font-weight: 800;
+    text-transform: uppercase; 
+    padding: 14px; 
+    text-align: left; 
+    border-bottom: 2px solid #f1f5f9; 
+    letter-spacing: 0.05em;
+}
+
+.order-table td { 
+    padding: 14px; 
+    font-size: 14px; 
+    border-bottom: 1px solid #f8fafc; 
+    font-weight: 600; 
+    color: #334155;
+}
+
+/* Badges */
+.qty-badge { 
+    background: #f0fdf4; 
+    color: #16a34a; 
+    padding: 6px 14px; 
+    border-radius: 12px; 
+    font-weight: 800; 
+    font-size: 12px;
+}
+
+/* Custom Scrollbar for better UX */
+::-webkit-scrollbar {
+    width: 4px;
+}
+::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+/* Hidden Section helper */
 .hidden-section { display: none; }
+
+/* Modal Background Blur */
+.modal {
+    backdrop-filter: blur(4px);
+}

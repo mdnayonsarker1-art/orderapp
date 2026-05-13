@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Report - Sharif Pharma</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .selected-card { background: #e0e7ff !important; border: 2px solid #4f46e5 !important; transform: scale(0.98); }
+        .strike-text { text-decoration: line-through; text-decoration-color: red; text-decoration-thickness: 2px; color: #94a3b8 !important; }
+        .item-checkbox { width: 18px; height: 18px; accent-color: #4f46e5; }
+        .invoice-break { page-break-after: always; border-bottom: 2px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; font-family: sans-serif; }
+    </style>
+</head>
+<body class="px-6 pt-8 max-w-md mx-auto pb-10">
+    
+    <div id="history-view">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-4">
+                <a href="index.html" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-600">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
+                <h1 id="page-title" class="text-2xl font-black text-slate-800 uppercase italic">History</h1>
+            </div>
+            <button id="allSelectBtn" class="hidden text-[10px] font-bold bg-slate-200 px-4 py-2 rounded-xl uppercase">All Select</button>
+        </div>
+
+        <div class="setup-card !p-4 bg-indigo-50/50 border-none">
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                    <label id="lbl-from" class="text-[9px] font-bold text-slate-400 ml-2 uppercase">From</label>
+                    <input type="date" id="fromDate" class="large-input !p-3 !text-xs !mb-0">
+                </div>
+                <div>
+                    <label id="lbl-to" class="text-[9px] font-bold text-slate-400 ml-2 uppercase">To</label>
+                    <input type="date" id="toDate" class="large-input !p-3 !text-xs !mb-0">
+                </div>
+            </div>
+            <select id="searchGroupFilter" class="large-input !text-sm !mb-2 !p-4"></select>
+            <button id="searchHistoryBtn" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-xs">Search Report</button>
+        </div>
+
+        <div id="multiSelectActions" class="hidden mt-4">
+            <button id="downloadMultiPdfBtn" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-sm">
+                <i class="fa-solid fa-file-pdf mr-2"></i> <span id="multi-pdf-text">Download Selected PDF</span>
+            </button>
+        </div>
+
+        <div id="history-data" class="space-y-4 mt-6"></div>
+    </div>
+
+    <div id="detail-view" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="window.closeDetail()" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-900">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="flex gap-2">
+                <button id="markDoneBtn" class="bg-indigo-600 text-white px-4 py-4 rounded-2xl text-[10px] font-black uppercase shadow-lg">Done</button>
+                <button id="downloadPdfBtn" class="bg-emerald-600 text-white px-4 py-4 rounded-2xl text-[10px] font-black uppercase shadow-lg">PDF</button>
+            </div>
+        </div>
+
+        <div id="invoice-print" class="bg-white p-6 rounded-[2.5rem] border shadow-xl mb-6">
+            <div class="text-center border-b pb-4 mb-4">
+                <h2 class="text-2xl font-black italic text-indigo-700">SHARIF PHARMA</h2>
+                <p id="inv-date" class="text-[9px] font-bold text-slate-400 uppercase mt-1"></p>
+            </div>
+            <p id="inv-chemist" class="text-xl font-black uppercase text-slate-800 italic mb-4"></p>
+            <table class="w-full">
+                <thead>
+                    <tr class="text-left border-b">
+                        <th id="th-med" class="pb-2 text-[10px] uppercase text-slate-400">Medicine</th>
+                        <th id="th-qty" class="pb-2 text-center text-[10px] uppercase text-slate-400">Qty</th>
+                        <th id="th-act" class="pb-2 text-center text-[10px] uppercase text-slate-400 no-pdf">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="inv-items-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="multi-invoice-container" class="hidden"></div>
+
+    <script type="module">
+        import { db, DOC_REF, today } from './config.js';
+        import { collection, getDocs, query, where, doc, deleteDoc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- ল্যাঙ্গুয়েজ সিস্টেম ---
+        const translations = {
+            en: {
+                title: "History",
+                from: "From",
+                to: "To",
+                searchBtn: "Search Report",
+                multiPdf: "Download Selected PDF",
+                done: "Done",
+                thMed: "Medicine",
+                thQty: "Qty",
+                thAct: "Action",
+                allSelect: "All Select",
+                deselectAll: "Deselect All",
+                searching: "Searching...",
+                noData: "No data found",
+                delConfirm: "Delete this report?",
+                delItem: "Delete this item?",
+                doneConfirm: "Strike out selected items?"
+            },
+            bn: {
+                title: "হিস্টরি",
+                from: "শুরু",
+                to: "শেষ",
+                searchBtn: "সার্চ রিপোর্ট",
+                multiPdf: "সিলেক্টেড PDF ডাউনলোড",
+                done: "ডান (Done)",
+                thMed: "মেডিসিন",
+                thQty: "পরিমাণ",
+                thAct: "অ্যাকশন",
+                allSelect: "সব সিলেক্ট",
+                deselectAll: "সিলেক্ট বাদ দিন",
+                searching: "সার্চ হচ্ছে...",
+                noData: "কোন ডাটা পাওয়া যায়নি",
+                delConfirm: "পুরো রিপোর্টটি ডিলিট করতে চান?",
+                delItem: "এই আইটেমটি ডিলিট করবেন?",
+                doneConfirm: "সিলেক্ট করা মেডিসিনগুলো কেটে দিতে চান?"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLang') || 'en';
+        const t = translations[currentLang];
+
+        function applyLanguage() {
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('lbl-from').innerText = t.from;
+            document.getElementById('lbl-to').innerText = t.to;
+            document.getElementById('searchHistoryBtn').innerText = t.searchBtn;
+            document.getElementById('multi-pdf-text').innerText = t.multiPdf;
+            document.getElementById('markDoneBtn').innerText = t.done;
+            document.getElementById('th-med').innerText = t.thMed;
+            document.getElementById('th-qty').innerText = t.thQty;
+            document.getElementById('th-act').innerText = t.thAct;
+        }
+        applyLanguage();
+
+        // --- Firebase ও অন্যান্য লজিক ---
+        document.getElementById('fromDate').value = today;
+        document.getElementById('toDate').value = today;
+
+        let selectedOrders = new Set();
+        let isSelectMode = false;
+        let currentResults = [];
+        let currentOrderItems = [];
+        let currentOrderId = '';
+        let lastScrollPos = 0;
+
+        onSnapshot(DOC_REF, (snap) => {
+            if(snap.exists()){
+                const groups = snap.data().groups || [];
+                document.getElementById('searchGroupFilter').innerHTML = `<option value="ALL">${currentLang === 'bn' ? 'সব গ্রুপ' : 'All Groups'}</option>` + 
+                    groups.map(g => `<option value="${g}">${g}</option>`).join('');
+            }
+        });
+
+        document.getElementById('searchHistoryBtn').onclick = async () => {
+            const from = document.getElementById('fromDate').value;
+            const to = document.getElementById('toDate').value;
+            const grp = document.getElementById('searchGroupFilter').value;
+            const container = document.getElementById('history-data');
+            
+            selectedOrders.clear();
+            isSelectMode = false;
+            updateUI();
+
+            container.innerHTML = `<p class="text-center font-bold">${t.searching}</p>`;
+            const q = query(collection(db, "orders"), where("date", ">=", from), where("date", "<=", to));
+            const snap = await getDocs(q);
+            currentResults = [];
+            snap.forEach(d => {
+                const data = d.data();
+                if(grp === "ALL" || data.group === grp) currentResults.push({id: d.id, ...data});
+            });
+            currentResults.sort((a,b) => b.timestamp - a.timestamp);
+
+            if(currentResults.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-400">${t.noData}</p>`;
+                document.getElementById('allSelectBtn').classList.add('hidden');
+                return;
+            }
+            document.getElementById('allSelectBtn').classList.remove('hidden');
+            renderList();
+        };
+
+        function renderList() {
+            const container = document.getElementById('history-data');
+            container.innerHTML = currentResults.map(d => `
+                <div id="card-${d.id}" 
+                     class="setup-card flex justify-between items-center !p-4 border-l-8 border-indigo-600 transition-all cursor-pointer ${selectedOrders.has(d.id) ? 'selected-card' : ''}"
+                     onmousedown="window.startLongPress('${d.id}')" 
+                     onmouseup="window.endLongPress()"
+                     ontouchstart="window.startLongPress('${d.id}')" 
+                     ontouchend="window.endLongPress()"
+                     onclick="window.handleCardClick('${d.id}')">
+                    <div class="flex-1">
+                        <p class="font-black text-slate-800 uppercase italic text-sm">${d.chemist}</p>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase">${d.group} • ${d.date}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        ${selectedOrders.has(d.id) ? '<i class="fa-solid fa-circle-check text-indigo-600"></i>' : ''}
+                        <button onclick="event.stopPropagation(); window.deleteReport('${d.id}')" class="p-2 text-red-400"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        let timer;
+        window.startLongPress = (id) => {
+            timer = setTimeout(() => {
+                if (!isSelectMode) {
+                    isSelectMode = true;
+                    window.toggleSelect(id);
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }
+            }, 600);
+        };
+        window.endLongPress = () => clearTimeout(timer);
+
+        window.handleCardClick = (id) => {
+            if (isSelectMode) window.toggleSelect(id);
+            else window.openDetail(id);
+        };
+
+        window.toggleSelect = (id) => {
+            if(selectedOrders.has(id)) {
+                selectedOrders.delete(id);
+                if (selectedOrders.size === 0) isSelectMode = false;
+            } else {
+                selectedOrders.add(id);
+            }
+            updateUI();
+            renderList();
+        };
+
+        function updateUI() {
+            const actionBox = document.getElementById('multiSelectActions');
+            if(selectedOrders.size > 0) actionBox.classList.remove('hidden');
+            else actionBox.classList.add('hidden');
+            document.getElementById('allSelectBtn').innerText = selectedOrders.size === currentResults.length ? t.deselectAll : t.allSelect;
+        }
+
+        document.getElementById('allSelectBtn').onclick = () => {
+            if(selectedOrders.size === currentResults.length) {
+                selectedOrders.clear();
+                isSelectMode = false;
+            } else {
+                isSelectMode = true;
+                currentResults.forEach(r => selectedOrders.add(r.id));
+            }
+            updateUI();
+            renderList();
+        };
+
+        window.openDetail = (id) => {
+            lastScrollPos = window.scrollY; 
+            currentOrderId = id;
+            onSnapshot(doc(db, "orders", id), (snap) => {
+                if(!snap.exists()) return;
+                const data = snap.data();
+                currentOrderItems = data.items || [];
+                const struckItems = data.struckItems || [];
+                
+                document.getElementById('history-view').classList.add('hidden');
+                document.getElementById('detail-view').classList.remove('hidden');
+                window.scrollTo(0, 0); 
+
+                document.getElementById('inv-date').innerText = data.date;
+                document.getElementById('inv-chemist').innerText = data.chemist;
+                
+                document.getElementById('inv-items-table-body').innerHTML = currentOrderItems.map((it, i) => {
+                    const isStruck = struckItems.includes(i);
+                    return `
+                    <tr class="border-b">
+                        <td class="py-4 uppercase text-[12px] font-bold ${isStruck ? 'strike-text' : ''}">${it.product}</td>
+                        <td class="py-4 text-center font-black text-indigo-600 ${isStruck ? 'strike-text' : ''}">x${it.qty}</td>
+                        <td class="py-4 no-pdf">
+                            <div class="flex items-center justify-center gap-2">
+                                <input type="checkbox" class="item-checkbox" data-index="${i}" ${isStruck ? 'checked disabled' : ''}>
+                                <button onclick="window.editItem(${i})" class="text-indigo-400 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button onclick="window.deleteItemFromOrder(${i})" class="text-red-300 p-1"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+            });
+        };
+
+        window.closeDetail = () => {
+            document.getElementById('detail-view').classList.add('hidden');
+            document.getElementById('history-view').classList.remove('hidden');
+            setTimeout(() => { window.scrollTo(0, lastScrollPos); }, 10);
+        };
+
+        window.editItem = (index) => {
+            const item = currentOrderItems[index];
+            const msgName = currentLang === 'bn' ? "মেডিসিনের নতুন নাম:" : "New Medicine Name:";
+            const msgQty = currentLang === 'bn' ? "নতুন পরিমাণ:" : "New Quantity:";
+            const newName = prompt(msgName, item.product);
+            const newQty = prompt(msgQty, item.qty);
+            if (newName && newQty) {
+                const updatedItems = [...currentOrderItems];
+                updatedItems[index] = { product: newName.toUpperCase().trim(), qty: newQty.trim() };
+                updateDoc(doc(db, "orders", currentOrderId), { items: updatedItems });
+            }
+        };
+
+        document.getElementById('markDoneBtn').onclick = async () => {
+            const checkboxes = document.querySelectorAll('.item-checkbox:checked:not(:disabled)');
+            if(checkboxes.length === 0) return alert(currentLang === 'bn' ? "মেডিসিন সিলেক্ট করুন!" : "Select medicine first!");
+            if(confirm(t.doneConfirm)) {
+                const orderSnap = await getDoc(doc(db, "orders", currentOrderId));
+                let currentStruck = orderSnap.data().struckItems || [];
+                checkboxes.forEach(cb => currentStruck.push(parseInt(cb.dataset.index)));
+                await updateDoc(doc(db, "orders", currentOrderId), { struckItems: currentStruck });
+            }
+        };
+
+        window.deleteReport = async (id) => {
+            if(confirm(t.delConfirm)) {
+                await deleteDoc(doc(db, "orders", id));
+                document.getElementById('searchHistoryBtn').click();
+            }
+        };
+
+        window.deleteItemFromOrder = async (index) => {
+            if(confirm(t.delItem)) {
+                const newItems = currentOrderItems.filter((_, i) => i !== index);
+                await updateDoc(doc(db, "orders", currentOrderId), { items: newItems });
+            }
+        };
+
+        document.getElementById('downloadPdfBtn').onclick = () => {
+            const el = document.getElementById('invoice-print');
+            const noPdfElements = document.querySelectorAll('.no-pdf');
+            noPdfElements.forEach(el => el.style.display = 'none');
+            html2pdf().set({ margin: 10, filename: `Order_${document.getElementById('inv-chemist').innerText}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 3 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(el).save().then(() => {
+                noPdfElements.forEach(el => el.style.display = 'table-cell');
+            });
+        };
+
+        document.getElementById('downloadMultiPdfBtn').onclick = async () => {
+            const container = document.getElementById('multi-invoice-container');
+            container.innerHTML = '';
+            container.classList.remove('hidden');
+            const selectedData = currentResults.filter(r => selectedOrders.has(r.id));
+            
+            selectedData.forEach((order) => {
+                const struckItems = order.struckItems || [];
+                container.innerHTML += `
+                    <div class="invoice-break">
+                        <div style="text-align: center; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; margin-bottom: 15px;">
+                            <h2 style="margin:0; font-size: 24px; color: #4f46e5;">SHARIF PHARMA</h2>
+                            <p style="margin:0; font-size: 10px; color: #666; text-transform: uppercase;">Date: ${order.date} | Group: ${order.group}</p>
+                        </div>
+                        <h3 style="text-transform: uppercase; margin-bottom: 15px;">Chemist: ${order.chemist}</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead><tr style="background: #f3f4f6;"><th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Medicine</th><th style="text-align: center; padding: 8px; border: 1px solid #ddd;">Qty</th></tr></thead>
+                            <tbody>
+                                ${order.items.map((it, idx) => `
+                                    <tr>
+                                        <td style="padding: 8px; border: 1px solid #ddd; text-transform: uppercase; ${struckItems.includes(idx) ? 'text-decoration: line-through; color: #999;' : ''}">${it.product}</td>
+                                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; ${struckItems.includes(idx) ? 'text-decoration: line-through; color: #999;' : ''}">${it.qty}</td>
+                                    </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>`;
+            });
+
+            await html2pdf().set({ margin: 10, filename: `Combined_Orders.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(container).save();
+            container.classList.add('hidden');
+        };
+    </script>
+</body>
+</html>

@@ -1,28 +1,35 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-    getFirestore, 
-    doc, 
-    initializeFirestore, 
-    persistentLocalCache, 
-    persistentMultipleTabManager 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+/**
+ * Local Database Configuration (IndexedDB)
+ * Firebase সরিয়ে এখন এটি সরাসরি ব্রাউজারের মেমোরি ব্যবহার করবে।
+ */
 
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+const dbName = "SharifPharmaLocalDB";
+const dbVersion = 1;
+
+// ডাটাবেস ওপেন করার জন্য একটি কমন ফাংশন
+export const openDB = () => {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+
+        // যদি ডাটাবেস আগে তৈরি করা না থাকে (প্রথমবার অ্যাপ চালালে)
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            
+            // ১. গ্রুপ লিস্ট স্টোর করার জন্য টেবিল
+            if (!db.objectStoreNames.contains("groups")) {
+                db.createObjectStore("groups", { keyPath: "id", autoIncrement: true });
+            }
+            
+            // ২. মেডিসিন বা অর্ডার লিস্ট স্টোর করার জন্য টেবিল (ভবিষ্যতের জন্য)
+            if (!db.objectStoreNames.contains("orders")) {
+                db.createObjectStore("orders", { keyPath: "id", autoIncrement: true });
+            }
+        };
+
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject("IndexedDB error: " + e.target.errorCode);
+    });
 };
 
-const app = initializeApp(firebaseConfig);
-
-// অফলাইন ডাটাবেস মেমোরি সক্রিয় করা
-const db = initializeFirestore(app, {
-    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-});
-
-const DOC_REF = doc(db, "sharif_pharma", "master_data");
-
-export { db, DOC_REF };
+// এই ডাটাবেসের নাম অন্যান্য পেজে ব্যবহারের জন্য এক্সপোর্ট করছি
+export { dbName };

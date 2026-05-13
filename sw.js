@@ -9,7 +9,7 @@ const assets = [
   'style.css',
   'config.js',
   'manifest.json',
-  'logo.png', // নিশ্চিত করুন এই নামে ইমেজ ফাইলটি আপনার ফোল্ডারে আছে
+  'logos.png', // নিশ্চিত করুন এই নামে ইমেজ ফাইলটি আপনার ফোল্ডারে আছে
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'

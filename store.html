@@ -16,7 +16,7 @@
         @media print { .no-pdf { display: none !important; } }
     </style>
 </head>
-<body class="px-6 pt-8 max-w-md mx-auto pb-10">
+<body class="px-6 pt-8 max-w-md mx-auto pb-10 bg-slate-50">
     
     <div class="flex items-center gap-4 mb-6 no-pdf">
         <a href="index.html" class="bg-white p-3 rounded-2xl shadow-sm border text-indigo-600">
@@ -25,21 +25,22 @@
         <h1 id="page-title" class="text-2xl font-black text-slate-800 uppercase italic">Stock Store</h1>
     </div>
 
-    <div class="setup-card !p-4 bg-emerald-50/50 border-none mb-6 no-pdf">
+    <!-- ফিল্টার সেকশন -->
+    <div class="bg-white p-5 rounded-[2.5rem] shadow-sm border mb-6 no-pdf">
         <div class="grid grid-cols-2 gap-2 mb-3">
             <div>
                 <label id="lbl-from" class="text-[9px] font-bold text-slate-400 ml-2 uppercase">From Date</label>
-                <input type="date" id="storeFromDate" class="large-input !p-3 !text-xs !mb-0">
+                <input type="date" id="storeFromDate" class="w-full p-3 rounded-xl border-2 outline-none text-xs">
             </div>
             <div>
                 <label id="lbl-to" class="text-[9px] font-bold text-slate-400 ml-2 uppercase">To Date</label>
-                <input type="date" id="storeToDate" class="large-input !p-3 !text-xs !mb-0">
+                <input type="date" id="storeToDate" class="w-full p-3 rounded-xl border-2 outline-none text-xs">
             </div>
         </div>
 
         <div class="mb-4">
             <label id="lbl-grp" class="text-[9px] font-bold text-slate-400 ml-2 uppercase">Select Group</label>
-            <select id="storeGroupFilter" class="large-input !text-sm !mb-0 !p-4">
+            <select id="storeGroupFilter" class="w-full p-4 rounded-2xl border outline-none text-sm bg-slate-50">
                 <option value="ALL">All Groups</option>
             </select>
         </div>
@@ -52,14 +53,16 @@
         </div>
     </div>
 
+    <!-- সার্চ বার -->
     <div class="relative mb-4 no-pdf">
         <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-        <input type="text" id="storeSearch" placeholder="Search medicine..." class="large-input shadow-sm !pl-12 !mb-0">
+        <input type="text" id="storeSearch" placeholder="Search medicine..." class="w-full p-4 pl-12 rounded-2xl border outline-none shadow-sm">
     </div>
 
+    <!-- রিপোর্ট টেবিল -->
     <div id="stock-report-print" class="bg-white rounded-3xl border shadow-sm overflow-hidden p-2">
         <div class="hidden show-on-print text-center mb-4 border-b pb-2">
-            <h2 id="print-title" class="text-xl font-black text-indigo-700">SHARIF PHARMA - STOCK REPORT</h2>
+            <h2 class="text-xl font-black text-indigo-700">SHARIF PHARMA - STOCK REPORT</h2>
             <p id="print-date-info" class="text-[10px] text-slate-500 uppercase font-bold"></p>
         </div>
         <table class="w-full text-left border-collapse">
@@ -75,6 +78,7 @@
         </table>
     </div>
 
+    <!-- ডিটেইলস মোডাল -->
     <div id="detailsModal" class="modal no-pdf">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-4">
@@ -86,45 +90,29 @@
     </div>
 
     <script type="module">
-        import { db, DOC_REF, today } from './config.js';
-        import { collection, getDocs, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { openDB } from './config.js';
 
-        // --- ল্যাঙ্গুয়েজ ডাটা ---
+        let db;
+        const today = new Date().toISOString().split('T')[0];
+
         const translations = {
-            en: {
-                pageTitle: "Stock Store",
-                from: "From Date",
-                to: "To Date",
-                grp: "Select Group",
-                filter: "Filter Stock",
-                searchPl: "Search medicine...",
-                thMed: "Medicine Name",
-                thQty: "Total Qty",
-                initial: "Click Filter Button",
-                loading: "Loading...",
-                noData: "No data found",
-                pdfAlert: "Filter stock first!",
-                allGrp: "All Groups"
-            },
-            bn: {
-                pageTitle: "স্টক স্টোর",
-                from: "শুরুর তারিখ",
-                to: "শেষ তারিখ",
-                grp: "গ্রুপ সিলেক্ট করুন",
-                filter: "ফিল্টার স্টক",
-                searchPl: "মেডিসিন খুঁজুন...",
-                thMed: "মেডিসিনের নাম",
-                thQty: "মোট পরিমাণ",
-                initial: "ফিল্টার বাটনে ক্লিক করুন",
-                loading: "লোড হচ্ছে...",
-                noData: "কোন ডাটা পাওয়া যায়নি",
-                pdfAlert: "প্রথমে স্টক ফিল্টার করুন!",
-                allGrp: "সব গ্রুপ"
-            }
+            en: { pageTitle: "Stock Store", from: "From Date", to: "To Date", grp: "Select Group", filter: "Filter Stock", searchPl: "Search medicine...", thMed: "Medicine Name", thQty: "Total Qty", initial: "Click Filter Button", loading: "Loading...", noData: "No data found", pdfAlert: "Filter stock first!", allGrp: "All Groups" },
+            bn: { pageTitle: "স্টক স্টোর", from: "শুরুর তারিখ", to: "শেষ তারিখ", grp: "গ্রুপ সিলেক্ট করুন", filter: "ফিল্টার স্টক", searchPl: "মেডিসিন খুঁজুন...", thMed: "মেডিসিনের নাম", thQty: "মোট পরিমাণ", initial: "ফিল্টার বাটনে ক্লিক করুন", loading: "লোড হচ্ছে...", noData: "কোন ডাটা পাওয়া যায়নি", pdfAlert: "প্রথমে স্টক ফিল্টার করুন!", allGrp: "সব গ্রুপ" }
         };
 
         const currentLang = localStorage.getItem('appLang') || 'en';
         const t = translations[currentLang];
+
+        let fullStock = {};
+        let medDetails = {};
+
+        async function init() {
+            db = await openDB();
+            applyLanguage();
+            document.getElementById('storeFromDate').value = today;
+            document.getElementById('storeToDate').value = today;
+            loadGroups();
+        }
 
         function applyLanguage() {
             document.getElementById('page-title').innerText = t.pageTitle;
@@ -137,22 +125,18 @@
             document.getElementById('th-qty').innerText = t.thQty;
             if(document.getElementById('initial-msg')) document.getElementById('initial-msg').innerText = t.initial;
         }
-        applyLanguage();
 
-        // --- মূল লজিক ---
-        document.getElementById('storeFromDate').value = today;
-        document.getElementById('storeToDate').value = today;
+        async function loadGroups() {
+            const tx = db.transaction("groups", "readonly");
+            const store = tx.objectStore("groups");
+            const groups = await new Promise(r => {
+                const req = store.getAll();
+                req.onsuccess = () => r(req.result);
+            });
 
-        let fullStock = {};
-        let medDetails = {};
-
-        onSnapshot(DOC_REF, (snap) => {
-            if(snap.exists()){
-                const groups = snap.data().groups || [];
-                document.getElementById('storeGroupFilter').innerHTML = `<option value="ALL">${t.allGrp}</option>` + 
-                    groups.map(g => `<option value="${g}">${g}</option>`).join('');
-            }
-        });
+            document.getElementById('storeGroupFilter').innerHTML = `<option value="ALL">${t.allGrp}</option>` + 
+                groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+        }
 
         async function loadStock() {
             const from = document.getElementById('storeFromDate').value;
@@ -162,39 +146,47 @@
             
             tableBody.innerHTML = `<tr><td colspan="2" class="p-10 text-center font-bold text-slate-400 animate-pulse">${t.loading}</td></tr>`;
 
-            try {
-                const q = query(collection(db, "orders"), where("date", ">=", from), where("date", "<=", to));
-                const snap = await getDocs(q);
-                
-                fullStock = {};
-                medDetails = {};
+            const tx = db.transaction("orders", "readonly");
+            const store = tx.objectStore("orders");
+            
+            const allOrders = await new Promise(r => {
+                const req = store.getAll();
+                req.onsuccess = () => r(req.result);
+            });
 
-                snap.forEach(doc => {
-                    const order = doc.data();
+            fullStock = {};
+            medDetails = {};
+
+            allOrders.forEach(order => {
+                // তারিখ এবং গ্রুপ ফিল্টার
+                if (order.date >= from && order.date <= to) {
                     if (selectedGroup !== "ALL" && order.group !== selectedGroup) return;
 
-                    const chemistName = order.chemist;
+                    const chemistName = order.chemistName;
                     order.items.forEach(it => {
-                        const medName = it.product.toUpperCase().trim();
+                        const medName = it.name.toUpperCase().trim();
                         const qty = parseInt(it.qty) || 0;
+                        
                         fullStock[medName] = (fullStock[medName] || 0) + qty;
+                        
                         if (!medDetails[medName]) medDetails[medName] = [];
                         medDetails[medName].push({ chemist: chemistName, qty: qty });
                     });
-                });
-                renderTable();
-            } catch (err) {
-                tableBody.innerHTML = '<tr><td colspan="2" class="p-10 text-center text-red-500">Error loading data</td></tr>';
-            }
+                }
+            });
+
+            renderTable();
         }
 
         function renderTable(search = '') {
             const names = Object.keys(fullStock).filter(n => n.includes(search.toUpperCase())).sort();
             const tableBody = document.getElementById('store-table-body');
+            
             if (names.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="2" class="p-10 text-center text-slate-400">${t.noData}</td></tr>`;
                 return;
             }
+
             tableBody.innerHTML = names.map(name => `
                 <tr class="row-hover cursor-pointer" onclick="window.showDetails('${name}')">
                     <td class="p-4 font-bold text-slate-700 text-sm uppercase">${name}</td>
@@ -203,30 +195,11 @@
             `).join('');
         }
 
-        document.getElementById('savePdfBtn').onclick = () => {
-            const element = document.getElementById('stock-report-print');
-            const from = document.getElementById('storeFromDate').value;
-            const to = document.getElementById('storeToDate').value;
-            const group = document.getElementById('storeGroupFilter').value;
-            
-            document.getElementById('print-date-info').innerText = `Date Range: ${from} to ${to} | Group: ${group}`;
-            
-            const opt = {
-                margin: 10,
-                filename: `Stock_Report_${from}_to_${to}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            if(Object.keys(fullStock).length === 0) return alert(t.pdfAlert);
-            html2pdf().set(opt).from(element).save();
-        };
-
         window.showDetails = (medName) => {
             const modal = document.getElementById('detailsModal');
             document.getElementById('modalMedName').innerText = medName;
             const list = medDetails[medName] || [];
+            
             document.getElementById('modalDetailsBody').innerHTML = list.map(item => `
                 <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <span class="text-xs font-bold text-slate-600 uppercase">${item.chemist}</span>
@@ -237,11 +210,34 @@
         };
 
         window.closeModal = () => { document.getElementById('detailsModal').style.display = 'none'; };
-        document.getElementById('storeSearch').oninput = (e) => renderTable(e.target.value);
+
         document.getElementById('filterBtn').onclick = loadStock;
-        window.onclick = (e) => { if (e.target == document.getElementById('detailsModal')) closeModal(); };
+        document.getElementById('storeSearch').oninput = (e) => renderTable(e.target.value);
         
-        loadStock(); 
+        document.getElementById('savePdfBtn').onclick = () => {
+            if(Object.keys(fullStock).length === 0) return alert(t.pdfAlert);
+            
+            const element = document.getElementById('stock-report-print');
+            const from = document.getElementById('storeFromDate').value;
+            const to = document.getElementById('storeToDate').value;
+            const group = document.getElementById('storeGroupFilter').value;
+            
+            document.getElementById('print-date-info').innerText = `Date: ${from} to ${to} | Group: ${group}`;
+            
+            const opt = {
+                margin: 10,
+                filename: `Stock_Report_${from}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        };
+
+        window.onclick = (e) => { if (e.target == document.getElementById('detailsModal')) closeModal(); };
+
+        init();
     </script>
 </body>
 </html>
